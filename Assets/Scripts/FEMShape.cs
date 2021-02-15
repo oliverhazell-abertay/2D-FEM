@@ -96,6 +96,37 @@ public class FEMShape : MonoBehaviour
 				}
 			}
 		}
+		// Populate neighbours of each node
+		for (int y = 0; y < height; ++y)
+		{
+			for(int x = 0; x < width; ++x)
+			{
+				// Left
+				if (nodes[(y * width) + x].GetComponent<FEMNode>().le == false)
+				{
+					nodes[(y * width) + x].GetComponent<FEMNode>().leftAdj = nodes[(y * width) + (x - 1)];
+					nodes[(y * width) + x].GetComponent<FEMNode>().neighbourCount++;
+				}
+				// Right
+				if (nodes[(y * width) + x].GetComponent<FEMNode>().re == false)
+				{
+					nodes[(y * width) + x].GetComponent<FEMNode>().rightAdj = nodes[(y * width) + (x + 1)];
+					nodes[(y * width) + x].GetComponent<FEMNode>().neighbourCount++;
+				}
+				// Up
+				if (nodes[(y * width) + x].GetComponent<FEMNode>().ue == false)
+				{
+					nodes[(y * width) + x].GetComponent<FEMNode>().upAdj = nodes[((y - 1) * width) + x];
+					nodes[(y * width) + x].GetComponent<FEMNode>().neighbourCount++;
+				}
+				// Down
+				if (nodes[(y * width) + x].GetComponent<FEMNode>().de == false)
+				{
+					nodes[(y * width) + x].GetComponent<FEMNode>().downAdj = nodes[((y + 1) * width) + x];
+					nodes[(y * width) + x].GetComponent<FEMNode>().neighbourCount++;
+				}
+			}
+		}
 
 		// Initialise polygonPath for the collidor
 		CalculatePolyCollider();
@@ -137,6 +168,10 @@ public class FEMShape : MonoBehaviour
 		//BC = nodes[2].transform.position - nodes[1].transform.position;
 		//CD = nodes[3].transform.position - nodes[2].transform.position;
 		//DA = nodes[0].transform.position - nodes[3].transform.position;
+		if(Input.GetKeyDown("w"))
+		{
+			Deform();
+		}
 	}
 
 	void CalculatePolyCollider()
@@ -214,6 +249,50 @@ public class FEMShape : MonoBehaviour
 			dentDirection = new Vector3(collision.GetContact(0).normal.x, collision.GetContact(0).normal.y, 0.0f);
 			nodes[closestNode].transform.position += (dentDirection * collisionForce).normalized * stiffness;
 			nodes[secondClosestNode].transform.position += (dentDirection * collisionForce).normalized * stiffness;
+		}
+	}
+
+	void Deform()
+	{
+		Debug.Log("Deform() called!");
+		// Calculate force per node
+		float startForce = 100.0f;
+		float currentForce = startForce;
+
+		nodes[2].GetComponent<FEMNode>().currentForceApplied = nodes[2].GetComponent<FEMNode>().pressureLimit;
+		currentForce -= nodes[2].GetComponent<FEMNode>().pressureLimit;
+		if (currentForce > nodes[2].GetComponent<FEMNode>().pressureLimit)
+		{
+			// Calculate force over limit
+			float excessForce = nodes[2].GetComponent<FEMNode>().currentForceApplied - nodes[2].GetComponent<FEMNode>().pressureLimit;
+			// Dissipate amongst neighbours
+			if(nodes[2].GetComponent<FEMNode>().leftAdj != null)
+			{
+				nodes[2].GetComponent<FEMNode>().leftAdj.GetComponent<FEMNode>().currentForceApplied = excessForce / nodes[2].GetComponent<FEMNode>().neighbourCount;
+			}
+			if (nodes[2].GetComponent<FEMNode>().rightAdj != null)
+			{
+				nodes[2].GetComponent<FEMNode>().rightAdj.GetComponent<FEMNode>().currentForceApplied = excessForce / nodes[2].GetComponent<FEMNode>().neighbourCount;
+			}
+			if (nodes[2].GetComponent<FEMNode>().upAdj != null)
+			{
+				nodes[2].GetComponent<FEMNode>().upAdj.GetComponent<FEMNode>().currentForceApplied = excessForce / nodes[2].GetComponent<FEMNode>().neighbourCount;
+			}
+			if (nodes[2].GetComponent<FEMNode>().downAdj != null)
+			{
+				nodes[2].GetComponent<FEMNode>().downAdj.GetComponent<FEMNode>().currentForceApplied = excessForce / nodes[2].GetComponent<FEMNode>().neighbourCount;
+			}
+		}
+		// Calculate direction vector for each affected node
+		Vector3 displaceDir;
+		displaceDir = new Vector3(0.0f, -1.0f, 0.0f);
+		// Move node
+		for(int y = 0; y < height; ++y)
+		{
+			for(int x = 0; x < width; ++x)
+			{
+				nodes[(y * width) + x].transform.position += (displaceDir * nodes[(y * width) + x].GetComponent<FEMNode>().currentForceApplied).normalized;
+			}
 		}
 	}
 }

@@ -16,9 +16,9 @@ public class BallController : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-		if (Input.GetKeyDown(KeyCode.W))
-		{
-			rb.AddForce(trag * thrust);
-		}
+		//if (Input.GetKeyDown(KeyCode.W))
+		//{
+		//	rb.AddForce(trag * thrust);
+		//}
 	}
 }
