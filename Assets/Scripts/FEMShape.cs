@@ -177,61 +177,43 @@ public class FEMShape : MonoBehaviour
 			Debug.Log($"Impact at ({collision.GetContact(0).point.x}, {collision.GetContact(0).point.y}). Force: {collisionForce}");
 			Debug.Log($"Surface normal of collision ({collision.GetContact(0).normal.x}, {collision.GetContact(0).normal.y})");
 
-
-
 			// Check for the nearest two nodes to the collision
+			int closestNode = 0;
+			int secondClosestNode = 0;
+			float closestDistance = 1000;
+			float secondClosestDistance = 1000;
+
 			for (int y = 0; y < height; ++y)
 			{
 				for (int x = 0; x < width; ++x)
 				{
-					Vector2 currentNodePosition;
-					currentNodePosition = new Vector2(nodes[(y * width) + x].transform.position.x, nodes[(y * width) + x].transform.position.y);
-					float currentDistance;
-					currentDistance = Vector2.Distance(currentNodePosition, collision.GetContact(0).point);
-					Vector3 dentDirection;
-					dentDirection = new Vector2(collision.GetContact(0).normal.x, collision.GetContact(0).normal.y);
-					nodes[(y * width) + x].transform.position += (dentDirection * collisionForce).normalized * (stiffness / currentDistance);
-					//Debug.Log($"Node[{(y * width) + x}] currentDistance: {currentDistance}");
+					if (nodes[(y * width) + x].GetComponent<FEMNode>().ue == true
+							|| nodes[(y * width) + x].GetComponent<FEMNode>().de == true
+							|| nodes[(y * width) + x].GetComponent<FEMNode>().le == true
+							|| nodes[(y * width) + x].GetComponent<FEMNode>().re == true)
+					{
+						Vector2 currentNodePosition;
+						currentNodePosition = new Vector2(nodes[(y * width) + x].transform.position.x, nodes[(y * width) + x].transform.position.y);
+						float currentDistance;
+						currentDistance = Vector2.Distance(currentNodePosition, collision.GetContact(0).point);
+						if (currentDistance < closestDistance)
+						{
+							closestNode = (y * width) + x;
+							closestDistance = currentDistance;
+						}
+						else if (currentDistance < secondClosestDistance)
+						{
+							secondClosestNode = (y * width) + x;
+							secondClosestDistance = currentDistance;
+						}
+					}
 				}
 			}
-
-			//int closestNode = 0;
-			//int secondClosestNode = 0;
-			//float closestDistance = 1000;
-			//float secondClosestDistance = 1000;
-
-			//for (int y = 0; y < height; ++y)
-			//{
-			//	for (int x = 0; x < width; ++x)
-			//	{
-			//		if (nodes[(y * width) + x].GetComponent<FEMNode>().ue == true 
-			//				|| nodes[(y * width) + x].GetComponent<FEMNode>().de == true
-			//				|| nodes[(y * width) + x].GetComponent<FEMNode>().le == true
-			//				|| nodes[(y * width) + x].GetComponent<FEMNode>().re == true)
-			//		{
-			//			Vector2 currentNodePosition;
-			//			currentNodePosition = new Vector2(nodes[(y * width) + x].transform.position.x, nodes[(y * width) + x].transform.position.y);
-			//			float currentDistance;
-			//			currentDistance = Vector2.Distance(currentNodePosition, collision.GetContact(0).point);
-			//			if (currentDistance < closestDistance)
-			//			{
-			//				closestNode = (y * width) + x;
-			//				closestDistance = currentDistance;
-			//			}
-			//			else if (currentDistance < secondClosestDistance)
-			//			{
-			//				secondClosestNode = (y * width) + x;
-			//				secondClosestDistance = currentDistance;
-			//			}
-			//		}
-			//	}
-			//}
-
-			//// Move node in direction away from collision
-			//Vector3 dentDirection;
-			//dentDirection = new Vector3(collision.GetContact(0).normal.x, collision.GetContact(0).normal.y, 0.0f);
-			//nodes[closestNode].transform.position += (dentDirection * collisionForce).normalized * stiffness;
-			//nodes[secondClosestNode].transform.position += (dentDirection * collisionForce).normalized * stiffness;
+			// Move node in direction away from collision
+			Vector3 dentDirection;
+			dentDirection = new Vector3(collision.GetContact(0).normal.x, collision.GetContact(0).normal.y, 0.0f);
+			nodes[closestNode].transform.position += (dentDirection * collisionForce).normalized * stiffness;
+			nodes[secondClosestNode].transform.position += (dentDirection * collisionForce).normalized * stiffness;
 		}
 	}
 }
