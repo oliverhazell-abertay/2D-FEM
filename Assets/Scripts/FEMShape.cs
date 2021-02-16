@@ -258,31 +258,12 @@ public class FEMShape : MonoBehaviour
 		// Calculate force per node
 		float startForce = 100.0f;
 		float currentForce = startForce;
+		GameObject startNode = nodes[2];
 
-		nodes[2].GetComponent<FEMNode>().currentForceApplied = nodes[2].GetComponent<FEMNode>().pressureLimit;
-		currentForce -= nodes[2].GetComponent<FEMNode>().pressureLimit;
-		if (currentForce > nodes[2].GetComponent<FEMNode>().pressureLimit)
-		{
-			// Calculate force over limit
-			float excessForce = nodes[2].GetComponent<FEMNode>().currentForceApplied - nodes[2].GetComponent<FEMNode>().pressureLimit;
-			// Dissipate amongst neighbours
-			if(nodes[2].GetComponent<FEMNode>().leftAdj != null)
-			{
-				nodes[2].GetComponent<FEMNode>().leftAdj.GetComponent<FEMNode>().currentForceApplied = excessForce / nodes[2].GetComponent<FEMNode>().neighbourCount;
-			}
-			if (nodes[2].GetComponent<FEMNode>().rightAdj != null)
-			{
-				nodes[2].GetComponent<FEMNode>().rightAdj.GetComponent<FEMNode>().currentForceApplied = excessForce / nodes[2].GetComponent<FEMNode>().neighbourCount;
-			}
-			if (nodes[2].GetComponent<FEMNode>().upAdj != null)
-			{
-				nodes[2].GetComponent<FEMNode>().upAdj.GetComponent<FEMNode>().currentForceApplied = excessForce / nodes[2].GetComponent<FEMNode>().neighbourCount;
-			}
-			if (nodes[2].GetComponent<FEMNode>().downAdj != null)
-			{
-				nodes[2].GetComponent<FEMNode>().downAdj.GetComponent<FEMNode>().currentForceApplied = excessForce / nodes[2].GetComponent<FEMNode>().neighbourCount;
-			}
-		}
+		// Dissipate force through neighbours 
+		startNode.GetComponent<FEMNode>().currentForceApplied = currentForce;
+		DissipateForceToNeighbours(startNode);
+
 		// Calculate direction vector for each affected node
 		Vector3 displaceDir;
 		displaceDir = new Vector3(0.0f, -1.0f, 0.0f);
@@ -291,8 +272,51 @@ public class FEMShape : MonoBehaviour
 		{
 			for(int x = 0; x < width; ++x)
 			{
-				nodes[(y * width) + x].transform.position += (displaceDir * nodes[(y * width) + x].GetComponent<FEMNode>().currentForceApplied).normalized;
+				int nodeNum = (y * width) + x;
+				displaceDir = nodes[nodeNum].transform.position - startNode.transform.position;
+				nodes[nodeNum].transform.position += (displaceDir * nodes[nodeNum].GetComponent<FEMNode>().currentForceApplied) * stiffness;
 			}
+		}
+	}
+
+	void DissipateForceToNeighbours(GameObject currentNodeObject)
+	{
+		FEMNode currentNode = currentNodeObject.GetComponent<FEMNode>();
+		if (currentNode.currentForceApplied > currentNode.pressureLimit)
+		{
+			// Calculate force over limit
+			float excessForce = currentNode.currentForceApplied - currentNode.pressureLimit;
+			// Dissipate amongst neighbours
+			// Left
+			if (currentNode.leftAdj != null)
+			{
+				Debug.Log($"Force ({excessForce / currentNode.neighbourCount}) into left neighbour");
+				currentNode.leftAdj.GetComponent<FEMNode>().currentForceApplied += excessForce / currentNode.neighbourCount;
+				DissipateForceToNeighbours(currentNode.leftAdj);
+			}
+			// Right
+			if (currentNode.rightAdj != null)
+			{
+				Debug.Log($"Force ({excessForce / currentNode.neighbourCount}) into right neighbour");
+				currentNode.rightAdj.GetComponent<FEMNode>().currentForceApplied += excessForce / currentNode.neighbourCount;
+				//DissipateForceToNeighbours(currentNode.rightAdj);
+			}
+			// Up
+			if (currentNode.upAdj != null)
+			{
+				Debug.Log($"Force ({excessForce / currentNode.neighbourCount}) into up neighbour");
+				currentNode.upAdj.GetComponent<FEMNode>().currentForceApplied += excessForce / currentNode.neighbourCount;
+				//DissipateForceToNeighbours(currentNode.upAdj);
+			}
+			// Down
+			if (currentNode.downAdj != null)
+			{
+				Debug.Log($"Force ({excessForce / currentNode.neighbourCount}) into down neighbour");
+				currentNode.downAdj.GetComponent<FEMNode>().currentForceApplied += excessForce / currentNode.neighbourCount;
+				DissipateForceToNeighbours(currentNode.downAdj);
+			}
+			// Take excess force off of currentNode by setting force to limit
+			currentNode.currentForceApplied = currentNode.pressureLimit;
 		}
 	}
 }
