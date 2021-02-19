@@ -7,6 +7,7 @@ public class FEMNode : MonoBehaviour
 	public Vector2 Position;
 	public bool le, re, ue, de;
 	public bool corner;
+	public bool frameDone = false;
 
 	public float pressureLimit = 20.0f;
 	public float currentForceApplied = 0.0f;

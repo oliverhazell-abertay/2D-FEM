@@ -267,7 +267,7 @@ public class FEMShape : MonoBehaviour
 		// Calculate direction vector for each affected node
 		Vector3 displaceDir;
 		displaceDir = new Vector3(0.0f, -1.0f, 0.0f);
-		// Move node
+		// Move node and reset for next frame
 		for(int y = 0; y < height; ++y)
 		{
 			for(int x = 0; x < width; ++x)
@@ -275,6 +275,8 @@ public class FEMShape : MonoBehaviour
 				int nodeNum = (y * width) + x;
 				displaceDir = nodes[nodeNum].transform.position - startNode.transform.position;
 				nodes[nodeNum].transform.position += (displaceDir * nodes[nodeNum].GetComponent<FEMNode>().currentForceApplied) * stiffness;
+				nodes[nodeNum].GetComponent<FEMNode>().frameDone = false;
+				nodes[nodeNum].GetComponent<FEMNode>().currentForceApplied = 0.0f;
 			}
 		}
 	}
@@ -286,30 +288,31 @@ public class FEMShape : MonoBehaviour
 		{
 			// Calculate force over limit
 			float excessForce = currentNode.currentForceApplied - currentNode.pressureLimit;
+			currentNode.frameDone = true;
 			// Dissipate amongst neighbours
 			// Left
-			if (currentNode.leftAdj != null)
+			if (currentNode.leftAdj != null && currentNode.leftAdj.GetComponent<FEMNode>().frameDone == false)
 			{
 				Debug.Log($"Force ({excessForce / currentNode.neighbourCount}) into left neighbour");
 				currentNode.leftAdj.GetComponent<FEMNode>().currentForceApplied += excessForce / currentNode.neighbourCount;
 				DissipateForceToNeighbours(currentNode.leftAdj);
 			}
 			// Right
-			if (currentNode.rightAdj != null)
+			if (currentNode.rightAdj != null && currentNode.rightAdj.GetComponent<FEMNode>().frameDone == false)
 			{
 				Debug.Log($"Force ({excessForce / currentNode.neighbourCount}) into right neighbour");
 				currentNode.rightAdj.GetComponent<FEMNode>().currentForceApplied += excessForce / currentNode.neighbourCount;
-				//DissipateForceToNeighbours(currentNode.rightAdj);
+				DissipateForceToNeighbours(currentNode.rightAdj);
 			}
 			// Up
-			if (currentNode.upAdj != null)
+			if (currentNode.upAdj != null && currentNode.upAdj.GetComponent<FEMNode>().frameDone == false)
 			{
 				Debug.Log($"Force ({excessForce / currentNode.neighbourCount}) into up neighbour");
 				currentNode.upAdj.GetComponent<FEMNode>().currentForceApplied += excessForce / currentNode.neighbourCount;
-				//DissipateForceToNeighbours(currentNode.upAdj);
+				DissipateForceToNeighbours(currentNode.upAdj);
 			}
 			// Down
-			if (currentNode.downAdj != null)
+			if (currentNode.downAdj != null && currentNode.downAdj.GetComponent<FEMNode>().frameDone == false)
 			{
 				Debug.Log($"Force ({excessForce / currentNode.neighbourCount}) into down neighbour");
 				currentNode.downAdj.GetComponent<FEMNode>().currentForceApplied += excessForce / currentNode.neighbourCount;
