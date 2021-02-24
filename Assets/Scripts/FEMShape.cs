@@ -36,8 +36,12 @@ public class FEMShape : MonoBehaviour
 	public PolygonCollider2D polyCollider;
 
 	// Variables for collision
-	public float stiffness;
+	public float stiffness = 0.05f;
 	public float forceRequired = 0;
+
+	// Perturbed Lists
+	public List<GameObject> perturbed1;
+	public List<GameObject> perturbed2;
 
 	// Variables for rendering
 	public bool edgesOnly = true;
@@ -205,121 +209,143 @@ public class FEMShape : MonoBehaviour
 
 	private void OnCollisionEnter2D(Collision2D collision)
 	{
-		float collisionForce = collision.GetContact(0).normalImpulse / Time.fixedDeltaTime;
-		if (collision.gameObject.tag == "Player" && collisionForce > forceRequired)
-		{
-			//Debug info about collision
-			Debug.Log($"Impact at ({collision.GetContact(0).point.x}, {collision.GetContact(0).point.y}). Force: {collisionForce}");
-			Debug.Log($"Surface normal of collision ({collision.GetContact(0).normal.x}, {collision.GetContact(0).normal.y})");
 
-			// Check for the nearest two nodes to the collision
-			int closestNode = 0;
-			int secondClosestNode = 0;
-			float closestDistance = 1000;
-			float secondClosestDistance = 1000;
-
-			for (int y = 0; y < height; ++y)
-			{
-				for (int x = 0; x < width; ++x)
-				{
-					if (nodes[(y * width) + x].GetComponent<FEMNode>().ue == true
-							|| nodes[(y * width) + x].GetComponent<FEMNode>().de == true
-							|| nodes[(y * width) + x].GetComponent<FEMNode>().le == true
-							|| nodes[(y * width) + x].GetComponent<FEMNode>().re == true)
-					{
-						Vector2 currentNodePosition;
-						currentNodePosition = new Vector2(nodes[(y * width) + x].transform.position.x, nodes[(y * width) + x].transform.position.y);
-						float currentDistance;
-						currentDistance = Vector2.Distance(currentNodePosition, collision.GetContact(0).point);
-						if (currentDistance < closestDistance)
-						{
-							closestNode = (y * width) + x;
-							closestDistance = currentDistance;
-						}
-						else if (currentDistance < secondClosestDistance)
-						{
-							secondClosestNode = (y * width) + x;
-							secondClosestDistance = currentDistance;
-						}
-					}
-				}
-			}
-			// Move node in direction away from collision
-			Vector3 dentDirection;
-			dentDirection = new Vector3(collision.GetContact(0).normal.x, collision.GetContact(0).normal.y, 0.0f);
-			nodes[closestNode].transform.position += (dentDirection * collisionForce).normalized * stiffness;
-			nodes[secondClosestNode].transform.position += (dentDirection * collisionForce).normalized * stiffness;
-		}
 	}
 
 	void Deform()
 	{
 		Debug.Log("Deform() called!");
 		// Calculate force per node
-		float startForce = 100.0f;
-		float currentForce = startForce;
+		float currentForce = 5.0f;
 		GameObject startNode = nodes[2];
+		Vector3 impactPos = startNode.transform.position;
 
+		// Create and populate perturbed lists
 		// Dissipate force through neighbours 
 		startNode.GetComponent<FEMNode>().currentForceApplied = currentForce;
-		DissipateForceToNeighbours(startNode);
+		AddNeighboursToPerturbed1(startNode);
+		foreach (GameObject node in perturbed1)
+		{
+			AddNeighboursToPerturbed2(node);
+		}
 
 		// Calculate direction vector for each affected node
+		// Move node and reset for next frame
 		Vector3 displaceDir;
 		displaceDir = new Vector3(0.0f, -1.0f, 0.0f);
-		// Move node and reset for next frame
-		for(int y = 0; y < height; ++y)
+
+		// Displace impacted node
+		startNode.transform.position += (displaceDir).normalized * (currentForce * stiffness);
+
+		// Displace first layer of perturbed nodes
+		foreach(GameObject node in perturbed1)
 		{
-			for(int x = 0; x < width; ++x)
+			displaceDir = node.transform.position - impactPos;
+			node.transform.position += (displaceDir).normalized * (currentForce * stiffness);
+		}
+
+		// Displace second layer of perturbed nodes
+		foreach (GameObject node in perturbed2)
+		{
+			displaceDir = node.transform.position - impactPos;
+			node.transform.position += (displaceDir).normalized * (currentForce * stiffness);
+		}
+		
+
+		// Clear perturbed lists
+		perturbed1.Clear();
+		perturbed2.Clear();
+	}
+
+	void AddNeighboursToPerturbed1(GameObject currentNodeObject)
+	{
+		FEMNode currentNode = currentNodeObject.GetComponent<FEMNode>();
+
+		// Left neighbour
+		if(currentNode.leftAdj != null)
+		{
+			// Check neighbour isn't already in perturbed1 list
+			if(!perturbed1.Contains(currentNode.leftAdj))
 			{
-				int nodeNum = (y * width) + x;
-				displaceDir = nodes[nodeNum].transform.position - startNode.transform.position;
-				nodes[nodeNum].transform.position += (displaceDir * nodes[nodeNum].GetComponent<FEMNode>().currentForceApplied) * stiffness;
-				nodes[nodeNum].GetComponent<FEMNode>().frameDone = false;
-				nodes[nodeNum].GetComponent<FEMNode>().currentForceApplied = 0.0f;
+				//Debug.Log("Adding leftAdj to perturbed1!");
+				perturbed1.Add(currentNode.leftAdj);
+			}
+		}
+		// Right neighbour
+		if (currentNode.rightAdj != null)
+		{
+			// Check neighbour isn't already in perturbed1 list
+			if (!perturbed1.Contains(currentNode.rightAdj))
+			{
+				//Debug.Log("Adding rightAdj to perturbed1!");
+				perturbed1.Add(currentNode.rightAdj);
+			}
+		}
+		// Up neighbour
+		if (currentNode.upAdj != null)
+		{
+			// Check neighbour isn't already in perturbed1 list
+			if (!perturbed1.Contains(currentNode.upAdj))
+			{
+				//Debug.Log("Adding upAdj to perturbed1!");
+				perturbed1.Add(currentNode.upAdj);
+			}
+		}
+		// Down neighbour
+		if (currentNode.downAdj != null)
+		{
+			// Check neighbour isn't already in perturbed1 list
+			if (!perturbed1.Contains(currentNode.downAdj))
+			{
+				//Debug.Log("Adding downAdj to perturbed1!");
+				perturbed1.Add(currentNode.downAdj);
 			}
 		}
 	}
 
-	void DissipateForceToNeighbours(GameObject currentNodeObject)
+	void AddNeighboursToPerturbed2(GameObject currentNodeObject)
 	{
 		FEMNode currentNode = currentNodeObject.GetComponent<FEMNode>();
-		if (currentNode.currentForceApplied > currentNode.pressureLimit)
+
+		// Left neighbour
+		if (currentNode.leftAdj != null)
 		{
-			// Calculate force over limit
-			float excessForce = currentNode.currentForceApplied - currentNode.pressureLimit;
-			currentNode.frameDone = true;
-			// Dissipate amongst neighbours
-			// Left
-			if (currentNode.leftAdj != null && currentNode.leftAdj.GetComponent<FEMNode>().frameDone == false)
+			// Check neighbour isn't already in perturbed2 list
+			if (!perturbed2.Contains(currentNode.leftAdj))
 			{
-				Debug.Log($"Force ({excessForce / currentNode.neighbourCount}) into left neighbour");
-				currentNode.leftAdj.GetComponent<FEMNode>().currentForceApplied += excessForce / currentNode.neighbourCount;
-				DissipateForceToNeighbours(currentNode.leftAdj);
+				//Debug.Log("Adding leftAdj to perturbed2!");
+				perturbed2.Add(currentNode.leftAdj);
 			}
-			// Right
-			if (currentNode.rightAdj != null && currentNode.rightAdj.GetComponent<FEMNode>().frameDone == false)
+		}
+		// Right neighbour
+		if (currentNode.rightAdj != null)
+		{
+			// Check neighbour isn't already in perturbed2 list
+			if (!perturbed2.Contains(currentNode.rightAdj))
 			{
-				Debug.Log($"Force ({excessForce / currentNode.neighbourCount}) into right neighbour");
-				currentNode.rightAdj.GetComponent<FEMNode>().currentForceApplied += excessForce / currentNode.neighbourCount;
-				DissipateForceToNeighbours(currentNode.rightAdj);
+				//Debug.Log("Adding rightAdj to perturbed2!");
+				perturbed2.Add(currentNode.rightAdj);
 			}
-			// Up
-			if (currentNode.upAdj != null && currentNode.upAdj.GetComponent<FEMNode>().frameDone == false)
+		}
+		// Up neighbour
+		if (currentNode.upAdj != null)
+		{
+			// Check neighbour isn't already in perturbed2 list
+			if (!perturbed2.Contains(currentNode.upAdj))
 			{
-				Debug.Log($"Force ({excessForce / currentNode.neighbourCount}) into up neighbour");
-				currentNode.upAdj.GetComponent<FEMNode>().currentForceApplied += excessForce / currentNode.neighbourCount;
-				DissipateForceToNeighbours(currentNode.upAdj);
+				//Debug.Log("Adding upAdj to perturbed2!");
+				perturbed2.Add(currentNode.upAdj);
 			}
-			// Down
-			if (currentNode.downAdj != null && currentNode.downAdj.GetComponent<FEMNode>().frameDone == false)
+		}
+		// Down neighbour
+		if (currentNode.downAdj != null)
+		{
+			// Check neighbour isn't already in perturbed2 list
+			if (!perturbed2.Contains(currentNode.downAdj))
 			{
-				Debug.Log($"Force ({excessForce / currentNode.neighbourCount}) into down neighbour");
-				currentNode.downAdj.GetComponent<FEMNode>().currentForceApplied += excessForce / currentNode.neighbourCount;
-				DissipateForceToNeighbours(currentNode.downAdj);
+				//Debug.Log("Adding downAdj to perturbed2!");
+				perturbed2.Add(currentNode.downAdj);
 			}
-			// Take excess force off of currentNode by setting force to limit
-			currentNode.currentForceApplied = currentNode.pressureLimit;
 		}
 	}
 }

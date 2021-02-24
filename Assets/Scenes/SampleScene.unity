@@ -423,12 +423,24 @@ PrefabInstance:
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 3341699387433921562, guid: 53782314d08ba4c44bd01b9d80da0232, type: 3}
+      propertyPath: width
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 3341699387433921562, guid: 53782314d08ba4c44bd01b9d80da0232, type: 3}
+      propertyPath: height
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 3341699387433921562, guid: 53782314d08ba4c44bd01b9d80da0232, type: 3}
       propertyPath: edgesOnly
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 3341699387433921562, guid: 53782314d08ba4c44bd01b9d80da0232, type: 3}
       propertyPath: stiffness
       value: 0.05
+      objectReference: {fileID: 0}
+    - target: {fileID: 3341699387433921562, guid: 53782314d08ba4c44bd01b9d80da0232, type: 3}
+      propertyPath: currentForce
+      value: 1000
       objectReference: {fileID: 0}
     - target: {fileID: 3341699387433921562, guid: 53782314d08ba4c44bd01b9d80da0232, type: 3}
       propertyPath: forceRequired
