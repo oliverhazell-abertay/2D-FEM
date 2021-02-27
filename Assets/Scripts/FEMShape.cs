@@ -174,7 +174,7 @@ public class FEMShape : MonoBehaviour
 		//DA = nodes[0].transform.position - nodes[3].transform.position;
 		if(Input.GetKeyDown("w"))
 		{
-			Deform();
+			Deform(nodes[2]);
 		}
 	}
 
@@ -209,15 +209,36 @@ public class FEMShape : MonoBehaviour
 
 	private void OnCollisionEnter2D(Collision2D collision)
 	{
+		if (collision.gameObject.tag != "Floor" && collision.relativeVelocity.magnitude > forceRequired)
+		{
+			GameObject closestNode = null;
+			float currentClosestDistance = 1000000.0f;
+			Vector3 collisionPos = collision.transform.position;
 
+			// Loop through nodes and find closest
+			for (int y = 0; y < height; ++y)
+			{
+				for (int x = 0; x < width; ++x)
+				{
+					int nodeNum = (y * width) + x;
+					float distanceToCollision = Vector3.Distance(nodes[nodeNum].transform.position, collisionPos);
+					if (distanceToCollision < currentClosestDistance)
+					{
+						closestNode = nodes[nodeNum];
+						currentClosestDistance = distanceToCollision;
+					}
+				}
+			}
+			if(closestNode != null)
+				Deform(closestNode);
+		}
 	}
 
-	void Deform()
+	void Deform(GameObject startNode)
 	{
 		Debug.Log("Deform() called!");
 		// Calculate force per node
 		float currentForce = 5.0f;
-		GameObject startNode = nodes[2];
 		Vector3 impactPos = startNode.transform.position;
 
 		// Create and populate perturbed lists
@@ -238,6 +259,7 @@ public class FEMShape : MonoBehaviour
 		startNode.transform.position += (displaceDir).normalized * (currentForce * stiffness);
 
 		// Displace first layer of perturbed nodes
+		currentForce *= 0.5f;
 		foreach(GameObject node in perturbed1)
 		{
 			displaceDir = node.transform.position - impactPos;
@@ -245,12 +267,12 @@ public class FEMShape : MonoBehaviour
 		}
 
 		// Displace second layer of perturbed nodes
+		currentForce *= 0.5f;
 		foreach (GameObject node in perturbed2)
 		{
 			displaceDir = node.transform.position - impactPos;
 			node.transform.position += (displaceDir).normalized * (currentForce * stiffness);
 		}
-		
 
 		// Clear perturbed lists
 		perturbed1.Clear();
