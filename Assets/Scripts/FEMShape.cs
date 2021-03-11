@@ -215,11 +215,20 @@ public class FEMShape : MonoBehaviour
 		C = nodes[0].GetComponent<FEMNode>();
 		D = nodes[1].GetComponent<FEMNode>();
 
-		Vector3 centre = new Vector3((A.position.x + B.position.x) / 2,
-										(A.position.y + C.position.y) / 2,
-											0.0f);
+		//Vector3 centre = new Vector3((A.position.x + B.position.x) / 2,
+		//								(A.position.y + C.position.y) / 2,
+		//									0.0f);
+		Vector3 centre = new Vector3(0.0f, 0.0f, 0.0f);
 		elements[0] = Instantiate(element, centre, Quaternion.identity);
 		elements[0].transform.SetParent(gameObject.transform);
+		//elements[0].transform.localScale = new Vector3(0.25f, 0.25f, 1.0f);
+
+		elements[0].GetComponent<FEMElement>().nodes[0] = nodes[5];
+		elements[0].GetComponent<FEMElement>().nodes[1] = nodes[6];
+		elements[0].GetComponent<FEMElement>().nodes[2] = nodes[0];
+		elements[0].GetComponent<FEMElement>().nodes[3] = nodes[1];
+
+		elements[0].GetComponent<FEMElement>().DoMesh();
 
 		//for (int y = 0; y < height; ++y)
 		//{
