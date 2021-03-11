@@ -4,7 +4,8 @@ using UnityEngine;
 
 public class FEMNode : MonoBehaviour
 {
-	public Vector2 Position;
+	public int gridPos = 0;
+	public Vector2 position;
 	public bool le, re, ue, de;
 	public bool corner;
 	public bool frameDone = false;

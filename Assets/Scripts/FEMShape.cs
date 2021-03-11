@@ -23,6 +23,10 @@ public class FEMShape : MonoBehaviour
 	GameObject[] nodes;
 	public GameObject node;
 
+	// Array to hold elements
+	GameObject[] elements;
+	public GameObject element;
+
 	Renderer rend;
 	//public Vector3 AB, BC, CD, DA;
 
@@ -51,6 +55,7 @@ public class FEMShape : MonoBehaviour
 	{
 		rend = gameObject.GetComponent<Renderer>();
 		nodes = new GameObject[width * height];
+		elements = new GameObject[1];
 		topLeft = new Vector2(rend.bounds.min.x, rend.bounds.max.y);
 
 		// Get number of edge nodes for polygon collider
@@ -61,85 +66,23 @@ public class FEMShape : MonoBehaviour
 		ySpacing = height == 1 ? 0 : (rend.bounds.max.y - rend.bounds.min.y) / (height - 1);
 
 		// Instantiate nodes
-		for (int y = 0; y < height; ++y)
-		{
-			for (int x = 0; x < width; ++x)
-			{
-				nodes[(y * width) + x] = Instantiate(node, new Vector3(topLeft.x + (xSpacing * x), topLeft.y - (ySpacing * y), -1), Quaternion.identity);
-				nodes[(y * width) + x].name = $"Node ({x},{y})";
-				nodes[(y * width) + x].GetComponent<FEMNode>().Position = new Vector2(topLeft.x + (xSpacing * x), topLeft.y - (ySpacing * y));
-				// Check if it's a left edge
-				if (x == 0)
-				{
-					nodes[(y * width) + x].GetComponent<FEMNode>().le = true;
-				}
-				// Check if it's a right edge
-				if (x == width - 1)
-				{
-					nodes[(y * width) + x].GetComponent<FEMNode>().re = true;
-				}
-				// Check if it's a top edge
-				if (y == 0)
-				{
-					nodes[(y * width) + x].GetComponent<FEMNode>().ue = true;
-					// Check if it's a corner
-					if (x == 0 || x == width - 1)
-					{
-						nodes[(y * width) + x].GetComponent<FEMNode>().corner = true;
-					}
-				}
-				// Check if it's a bottom edge
-				if (y == height - 1)
-				{
-					nodes[(y * width) + x].GetComponent<FEMNode>().de = true;
-					// Check if it's a corner
-					if (x == 0 || x == width - 1)
-					{
-						nodes[(y * width) + x].GetComponent<FEMNode>().corner = true;
-					}
-				}
-			}
-		}
-		// Populate neighbours of each node
-		for (int y = 0; y < height; ++y)
-		{
-			for(int x = 0; x < width; ++x)
-			{
-				// Left
-				if (nodes[(y * width) + x].GetComponent<FEMNode>().le == false)
-				{
-					nodes[(y * width) + x].GetComponent<FEMNode>().leftAdj = nodes[(y * width) + (x - 1)];
-					nodes[(y * width) + x].GetComponent<FEMNode>().neighbourCount++;
-				}
-				// Right
-				if (nodes[(y * width) + x].GetComponent<FEMNode>().re == false)
-				{
-					nodes[(y * width) + x].GetComponent<FEMNode>().rightAdj = nodes[(y * width) + (x + 1)];
-					nodes[(y * width) + x].GetComponent<FEMNode>().neighbourCount++;
-				}
-				// Up
-				if (nodes[(y * width) + x].GetComponent<FEMNode>().ue == false)
-				{
-					nodes[(y * width) + x].GetComponent<FEMNode>().upAdj = nodes[((y - 1) * width) + x];
-					nodes[(y * width) + x].GetComponent<FEMNode>().neighbourCount++;
-				}
-				// Down
-				if (nodes[(y * width) + x].GetComponent<FEMNode>().de == false)
-				{
-					nodes[(y * width) + x].GetComponent<FEMNode>().downAdj = nodes[((y + 1) * width) + x];
-					nodes[(y * width) + x].GetComponent<FEMNode>().neighbourCount++;
-				}
-			}
-		}
+		InitNodes();
 
-		// Initialise polygonPath for the collidor
-		CalculatePolyCollider();
+		// Instantiate elements
+		InitElements();
 		
-		// make all nodes children of the element
-		for (int i = 0; i < nodes.Length; i++)
-		{
-			nodes[i].transform.SetParent(gameObject.transform);
-		}
+		// Calculate path for collidor and set it
+		CalculatePolyCollider();
+		polyCollider.enabled = false;
+		polyCollider.SetPath(0, polygonPath);
+		polyCollider.enabled = true;
+		
+		// Update vectors between nodes
+		//AB = nodes[1].transform.position - nodes[0].transform.position;
+		//BC = nodes[2].transform.position - nodes[1].transform.position;
+		//CD = nodes[3].transform.position - nodes[2].transform.position;
+		//DA = nodes[0].transform.position - nodes[3].transform.position;
+		
 	}
 
 	// Update is called once per frame
@@ -162,20 +105,134 @@ public class FEMShape : MonoBehaviour
 				}
 			}
 		}
-		// Calculate path for collidor and set it
-		CalculatePolyCollider();
-		polyCollider.enabled = false;
-		polyCollider.SetPath(0, polygonPath);
-		polyCollider.enabled = true;
-		// Update vectors between nodes
-		//AB = nodes[1].transform.position - nodes[0].transform.position;
-		//BC = nodes[2].transform.position - nodes[1].transform.position;
-		//CD = nodes[3].transform.position - nodes[2].transform.position;
-		//DA = nodes[0].transform.position - nodes[3].transform.position;
-		if(Input.GetKeyDown("w"))
+
+		if (Input.GetKeyDown("w"))
 		{
 			Deform(nodes[2]);
 		}
+	}
+
+	void InitNodes()
+	{
+		for (int y = 0; y < height; ++y)
+		{
+			for (int x = 0; x < width; ++x)
+			{
+				int nodeNum = (y * width) + x;
+				nodes[nodeNum] = Instantiate(node, new Vector3(topLeft.x + (xSpacing * x), topLeft.y - (ySpacing * y), -1), Quaternion.identity);
+				nodes[nodeNum].name = $"Node ({x},{y})";
+				nodes[nodeNum].GetComponent<FEMNode>().gridPos = nodeNum;
+				nodes[nodeNum].GetComponent<FEMNode>().position = new Vector2(topLeft.x + (xSpacing * x), topLeft.y - (ySpacing * y));
+				// Check if it's a left edge
+				if (x == 0)
+				{
+					nodes[nodeNum].GetComponent<FEMNode>().le = true;
+				}
+				// Check if it's a right edge
+				if (x == width - 1)
+				{
+					nodes[nodeNum].GetComponent<FEMNode>().re = true;
+				}
+				// Check if it's a top edge
+				if (y == 0)
+				{
+					nodes[nodeNum].GetComponent<FEMNode>().ue = true;
+					// Check if it's a corner
+					if (x == 0 || x == width - 1)
+					{
+						nodes[nodeNum].GetComponent<FEMNode>().corner = true;
+					}
+				}
+				// Check if it's a bottom edge
+				if (y == height - 1)
+				{
+					nodes[nodeNum].GetComponent<FEMNode>().de = true;
+					// Check if it's a corner
+					if (x == 0 || x == width - 1)
+					{
+						nodes[nodeNum].GetComponent<FEMNode>().corner = true;
+					}
+				}
+			}
+		}
+		// Populate neighbours of each node
+		for (int y = 0; y < height; ++y)
+		{
+			for (int x = 0; x < width; ++x)
+			{
+				int nodeNum = (y * width) + x;
+				// Left
+				if (nodes[nodeNum].GetComponent<FEMNode>().le == false)
+				{
+					nodes[nodeNum].GetComponent<FEMNode>().leftAdj = nodes[(y * width) + (x - 1)];
+					nodes[nodeNum].GetComponent<FEMNode>().neighbourCount++;
+				}
+				// Right
+				if (nodes[nodeNum].GetComponent<FEMNode>().re == false)
+				{
+					nodes[nodeNum].GetComponent<FEMNode>().rightAdj = nodes[(y * width) + (x + 1)];
+					nodes[nodeNum].GetComponent<FEMNode>().neighbourCount++;
+				}
+				// Up
+				if (nodes[nodeNum].GetComponent<FEMNode>().ue == false)
+				{
+					nodes[nodeNum].GetComponent<FEMNode>().upAdj = nodes[((y - 1) * width) + x];
+					nodes[nodeNum].GetComponent<FEMNode>().neighbourCount++;
+				}
+				// Down
+				if (nodes[nodeNum].GetComponent<FEMNode>().de == false)
+				{
+					nodes[nodeNum].GetComponent<FEMNode>().downAdj = nodes[((y + 1) * width) + x];
+					nodes[nodeNum].GetComponent<FEMNode>().neighbourCount++;
+				}
+			}
+		}
+
+		// Initialise polygonPath for the collidor
+		CalculatePolyCollider();
+
+		// make all nodes children of the element
+		for (int i = 0; i < nodes.Length; i++)
+		{
+			nodes[i].transform.SetParent(gameObject.transform);
+		}
+	}
+
+	void InitElements()
+	{
+		/*
+			2----------------3
+			|				 |
+			|				 |
+			|				 |
+			|				 |
+			|				 |
+			0----------------1
+		*/
+		FEMNode A, B, C, D;
+		A = nodes[5].GetComponent<FEMNode>();
+		B = nodes[6].GetComponent<FEMNode>();
+		C = nodes[0].GetComponent<FEMNode>();
+		D = nodes[1].GetComponent<FEMNode>();
+
+		Vector3 centre = new Vector3((A.position.x + B.position.x) / 2,
+										(A.position.y + C.position.y) / 2,
+											0.0f);
+		elements[0] = Instantiate(element, centre, Quaternion.identity);
+		elements[0].transform.SetParent(gameObject.transform);
+
+		//for (int y = 0; y < height; ++y)
+		//{
+		//	for (int x = 0; x < width; ++x)
+		//	{
+		//		int nodeNum = (y * width) + x;
+		//		FEMNode nodeProperties = nodes[nodeNum].GetComponent<FEMNode>();
+		//		if(!nodeProperties.ue && !nodeProperties.re)
+		//		{
+
+		//		}
+		//	}
+		//}
 	}
 
 	void CalculatePolyCollider()
@@ -229,8 +286,10 @@ public class FEMShape : MonoBehaviour
 					}
 				}
 			}
-			if(closestNode != null)
+			if (closestNode != null)
 				Deform(closestNode);
+			else
+				Debug.Log("Couldn't find nearest node to collision!");
 		}
 	}
 

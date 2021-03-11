@@ -4,16 +4,23 @@ using UnityEngine;
 
 public class FEMElement : MonoBehaviour
 {
-	// Start is called before the first frame update
-	void Start()
+	/*
+		2----------------3
+		|				 |
+		|				 |
+		|				 |
+		|				 |
+		|				 |
+		0----------------1
+	*/
+
+	GameObject[] verts = new GameObject[4];	// Four nodes
+	int[] tris = new int[6]; // Six points for 2 triangles
+
+	void CalculateTriangles()
 	{
+		// Lower left - 0, 2, 1
 
+		// Upper right - 2, 3, 1
 	}
-
-	// Update is called once per frame
-	void Update()
-	{
-
-	}
-
 }
