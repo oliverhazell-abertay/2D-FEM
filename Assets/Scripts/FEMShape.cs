@@ -88,33 +88,19 @@ public class FEMShape : MonoBehaviour
 	// Update is called once per frame
 	void Update()
 	{
-		// Only render edges if setting is on
-		if (edgesOnly == true)
-		{
-			for (int y = 0; y < height; ++y)
-			{
-				for (int x = 0; x < width; ++x)
-				{
-					if (nodes[(y * width) + x].GetComponent<FEMNode>().ue == false
-								   && nodes[(y * width) + x].GetComponent<FEMNode>().de == false
-								   && nodes[(y * width) + x].GetComponent<FEMNode>().le == false
-								   && nodes[(y * width) + x].GetComponent<FEMNode>().re == false)
-					{
-						nodes[(y * width) + x].GetComponent<SpriteRenderer>().enabled = false;
-					}
-				}
-			}
-		}
-
+		
 		if (Input.GetKeyDown("w"))
 		{
-			Deform(nodes[2]);
+			
 		}
 		// Calculate path for collidor and set it
 		CalculatePolyCollider();
 		polyCollider.enabled = false;
 		polyCollider.SetPath(0, polygonPath);
 		polyCollider.enabled = true;
+
+		elements[0].GetComponent<FEMElement>().DoMesh();
+
 	}
 
 	void InitNodes()
@@ -197,6 +183,24 @@ public class FEMShape : MonoBehaviour
 		{
 			nodes[i].transform.SetParent(gameObject.transform);
 		}
+		// Only render edges if setting is on
+		if (edgesOnly == true)
+		{
+			for (int y = 0; y < height; ++y)
+			{
+				for (int x = 0; x < width; ++x)
+				{
+					if (nodes[(y * width) + x].GetComponent<FEMNode>().ue == false
+								   && nodes[(y * width) + x].GetComponent<FEMNode>().de == false
+								   && nodes[(y * width) + x].GetComponent<FEMNode>().le == false
+								   && nodes[(y * width) + x].GetComponent<FEMNode>().re == false)
+					{
+						nodes[(y * width) + x].GetComponent<SpriteRenderer>().enabled = false;
+					}
+				}
+			}
+		}
+
 	}
 
 	void InitElements()

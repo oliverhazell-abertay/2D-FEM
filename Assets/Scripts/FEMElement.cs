@@ -27,22 +27,23 @@ public class FEMElement : MonoBehaviour
 	//		2, 3, 1
 	//	};
 	//}
-
+	MeshRenderer meshRenderer;
+	MeshFilter meshFilter;
+	
 	public void DoMesh()
 	{
-		MeshRenderer meshRenderer = gameObject.AddComponent<MeshRenderer>();
+		meshRenderer = gameObject.GetComponent<MeshRenderer>();
 		meshRenderer.sharedMaterial = new Material(Shader.Find("Standard"));
-
-		MeshFilter meshFilter = gameObject.AddComponent<MeshFilter>();
+		meshFilter = gameObject.GetComponent<MeshFilter>();
 
 		Mesh mesh = new Mesh();
 
 		Vector3[] vertices = new Vector3[4]
 		{
-			nodes[0].transform.position,
-			nodes[1].transform.position,
-			nodes[2].transform.position,
-			nodes[3].transform.position
+			nodes[0].transform.localPosition,
+			nodes[1].transform.localPosition,
+			nodes[2].transform.localPosition,
+			nodes[3].transform.localPosition
 		};
 		mesh.vertices = vertices;
 
