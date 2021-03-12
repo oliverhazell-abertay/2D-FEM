@@ -110,6 +110,11 @@ public class FEMShape : MonoBehaviour
 		{
 			Deform(nodes[2]);
 		}
+		// Calculate path for collidor and set it
+		CalculatePolyCollider();
+		polyCollider.enabled = false;
+		polyCollider.SetPath(0, polygonPath);
+		polyCollider.enabled = true;
 	}
 
 	void InitNodes()
@@ -187,10 +192,6 @@ public class FEMShape : MonoBehaviour
 				}
 			}
 		}
-
-		// Initialise polygonPath for the collidor
-		CalculatePolyCollider();
-
 		// make all nodes children of the element
 		for (int i = 0; i < nodes.Length; i++)
 		{
