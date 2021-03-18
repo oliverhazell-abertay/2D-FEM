@@ -89,9 +89,9 @@ public class FEMShape : MonoBehaviour
 	void Update()
 	{
 		
-		if (Input.GetKeyDown("w"))
+		if (Input.GetKeyDown("d"))
 		{
-			
+			elements[0].transform.position = new Vector3(0.0f, 0.0f, 0.0f);
 		}
 		// Calculate path for collidor and set it
 		CalculatePolyCollider();
@@ -206,32 +206,32 @@ public class FEMShape : MonoBehaviour
 	void InitElements()
 	{
 		/*
-			2----------------3
-			|				 |
-			|				 |
-			|				 |
-			|				 |
-			|				 |
 			0----------------1
+			|				 |
+			|				 |
+			|				 |
+			|				 |
+			|				 |
+			5----------------6
 		*/
-		FEMNode A, B, C, D;
-		A = nodes[5].GetComponent<FEMNode>();
-		B = nodes[6].GetComponent<FEMNode>();
-		C = nodes[0].GetComponent<FEMNode>();
-		D = nodes[1].GetComponent<FEMNode>();
+		GameObject A, B, C, D;
+		A = nodes[6];
+		B = nodes[7];
+		C = nodes[1];
+		D = nodes[2];
 
-		//Vector3 centre = new Vector3((A.position.x + B.position.x) / 2,
-		//								(A.position.y + C.position.y) / 2,
-		//									0.0f);
+		Vector3 nodesCentre = new Vector3((A.transform.localPosition.x + B.transform.localPosition.x) / 2,
+										(A.transform.localPosition.y + C.transform.localPosition.y) / 2,
+											0.0f);
 		Vector3 centre = new Vector3(0.0f, 0.0f, 0.0f);
 		elements[0] = Instantiate(element, centre, Quaternion.identity);
 		elements[0].transform.SetParent(gameObject.transform);
-		//elements[0].transform.localScale = new Vector3(0.25f, 0.25f, 1.0f);
+		elements[0].transform.localPosition = centre;
 
-		elements[0].GetComponent<FEMElement>().nodes[0] = nodes[5];
-		elements[0].GetComponent<FEMElement>().nodes[1] = nodes[6];
-		elements[0].GetComponent<FEMElement>().nodes[2] = nodes[0];
-		elements[0].GetComponent<FEMElement>().nodes[3] = nodes[1];
+		elements[0].GetComponent<FEMElement>().nodes[0] = A;
+		elements[0].GetComponent<FEMElement>().nodes[1] = B;
+		elements[0].GetComponent<FEMElement>().nodes[2] = C;
+		elements[0].GetComponent<FEMElement>().nodes[3] = D;
 
 		elements[0].GetComponent<FEMElement>().DoMesh();
 
@@ -247,6 +247,11 @@ public class FEMShape : MonoBehaviour
 		//		}
 		//	}
 		//}
+	}
+
+	void CreateElement()
+	{
+
 	}
 
 	void CalculatePolyCollider()
