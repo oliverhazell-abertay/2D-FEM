@@ -24,7 +24,7 @@ public class FEMShape : MonoBehaviour
 	public GameObject node;
 
 	// Array to hold elements
-	GameObject[] elements;
+	public GameObject[] elements;
 	public GameObject element;
 
 	Renderer rend;
@@ -55,7 +55,7 @@ public class FEMShape : MonoBehaviour
 	{
 		rend = gameObject.GetComponent<Renderer>();
 		nodes = new GameObject[width * height];
-		elements = new GameObject[1];
+		elements = new GameObject[(width - 1) * (height - 1)];
 		topLeft = new Vector2(rend.bounds.min.x, rend.bounds.max.y);
 
 		// Get number of edge nodes for polygon collider
@@ -99,7 +99,10 @@ public class FEMShape : MonoBehaviour
 		polyCollider.SetPath(0, polygonPath);
 		polyCollider.enabled = true;
 
-		elements[0].GetComponent<FEMElement>().DoMesh();
+		for (int elementNum = 0; elementNum < elements.Length; ++elementNum)
+		{
+			elements[elementNum].GetComponent<FEMElement>().DoMesh();
+		}
 
 	}
 
@@ -214,44 +217,65 @@ public class FEMShape : MonoBehaviour
 			|				 |
 			5----------------6
 		*/
-		GameObject A, B, C, D;
-		A = nodes[6];
-		B = nodes[7];
-		C = nodes[1];
-		D = nodes[2];
+		//GameObject A, B, C, D;
+		//A = nodes[6];
+		//B = nodes[7];
+		//C = nodes[1];
+		//D = nodes[2];
 
-		Vector3 nodesCentre = new Vector3((A.transform.localPosition.x + B.transform.localPosition.x) / 2,
-										(A.transform.localPosition.y + C.transform.localPosition.y) / 2,
-											0.0f);
-		Vector3 centre = new Vector3(0.0f, 0.0f, 0.0f);
-		elements[0] = Instantiate(element, centre, Quaternion.identity);
-		elements[0].transform.SetParent(gameObject.transform);
-		elements[0].transform.localPosition = centre;
+		//Vector3 nodesCentre = new Vector3((A.transform.localPosition.x + B.transform.localPosition.x) / 2,
+		//								(A.transform.localPosition.y + C.transform.localPosition.y) / 2,
+		//									0.0f);
+		//Vector3 centre = new Vector3(0.0f, 0.0f, 0.0f);
+		//elements[0] = Instantiate(element, centre, Quaternion.identity);
+		//elements[0].transform.SetParent(gameObject.transform);
+		//elements[0].transform.localPosition = centre;
 
-		elements[0].GetComponent<FEMElement>().nodes[0] = A;
-		elements[0].GetComponent<FEMElement>().nodes[1] = B;
-		elements[0].GetComponent<FEMElement>().nodes[2] = C;
-		elements[0].GetComponent<FEMElement>().nodes[3] = D;
+		//elements[0].GetComponent<FEMElement>().nodes[0] = A;
+		//elements[0].GetComponent<FEMElement>().nodes[1] = B;
+		//elements[0].GetComponent<FEMElement>().nodes[2] = C;
+		//elements[0].GetComponent<FEMElement>().nodes[3] = D;
 
-		elements[0].GetComponent<FEMElement>().DoMesh();
+		//elements[0].GetComponent<FEMElement>().DoMesh();
 
-		//for (int y = 0; y < height; ++y)
-		//{
-		//	for (int x = 0; x < width; ++x)
-		//	{
-		//		int nodeNum = (y * width) + x;
-		//		FEMNode nodeProperties = nodes[nodeNum].GetComponent<FEMNode>();
-		//		if(!nodeProperties.ue && !nodeProperties.re)
-		//		{
-
-		//		}
-		//	}
-		//}
+		for (int y = 0; y < height; ++y)
+		{
+			for (int x = 0; x < width; ++x)
+			{
+				int nodeNum = (y * width) + x;
+				FEMNode nodeProperties = nodes[nodeNum].GetComponent<FEMNode>();
+				if (!nodeProperties.ue && !nodeProperties.re)
+				{
+					int elementNum = (nodeNum - width) - (y - 1);
+					CreateElement(nodeNum, elementNum);
+				}
+			}
+		}
 	}
 
-	void CreateElement()
+	void CreateElement(int nodeNum, int elementNum)
 	{
+		FEMNode nodeProperties = nodes[nodeNum].GetComponent<FEMNode>();
+		GameObject A, B, C, D;
+		A = nodes[nodeNum];
+		B = nodeProperties.rightAdj;
+		C = nodeProperties.upAdj;
+		D = nodeProperties.upAdj.GetComponent<FEMNode>().rightAdj;
+		
+		Vector3 centre = new Vector3(0.0f, 0.0f, 0.0f);
+		elements[elementNum] = Instantiate(element, centre, Quaternion.identity);
+		elements[elementNum].name = $"Element ({elementNum})";
+		elements[elementNum].transform.SetParent(gameObject.transform);
+		elements[elementNum].transform.localPosition = centre;
 
+		elements[elementNum].GetComponent<FEMElement>().nodes[0] = A;
+		elements[elementNum].GetComponent<FEMElement>().nodes[1] = B;
+		elements[elementNum].GetComponent<FEMElement>().nodes[2] = C;
+		elements[elementNum].GetComponent<FEMElement>().nodes[3] = D;
+
+		elements[elementNum].GetComponent<FEMElement>().DoMesh();
+
+		Debug.Log($"Create element. nodeNum: {nodeNum}, elementNum: {elementNum}");
 	}
 
 	void CalculatePolyCollider()
@@ -314,7 +338,8 @@ public class FEMShape : MonoBehaviour
 
 	void Deform(GameObject startNode)
 	{
-		Debug.Log("Deform() called!");
+		//Debug.Log("Deform() called!");
+
 		// Calculate force per node
 		float currentForce = 5.0f;
 		Vector3 impactPos = startNode.transform.position;
