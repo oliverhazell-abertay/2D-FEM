@@ -49,6 +49,7 @@ public class FEMShape : MonoBehaviour
 
 	// Variables for rendering
 	public bool edgesOnly = true;
+	public bool renderNodes = true;
 
 	// Start is called before the first frame update
 	void Start()
@@ -91,19 +92,48 @@ public class FEMShape : MonoBehaviour
 		
 		if (Input.GetKeyDown("d"))
 		{
-			elements[0].transform.position = new Vector3(0.0f, 0.0f, 0.0f);
+			
 		}
+
 		// Calculate path for collidor and set it
 		CalculatePolyCollider();
 		polyCollider.enabled = false;
 		polyCollider.SetPath(0, polygonPath);
 		polyCollider.enabled = true;
 
+		// Update elements' meshes
 		for (int elementNum = 0; elementNum < elements.Length; ++elementNum)
 		{
 			elements[elementNum].GetComponent<FEMElement>().DoMesh();
 		}
 
+		// Only render edges if setting is on
+		if (edgesOnly == true)
+		{
+			for (int y = 0; y < height; ++y)
+			{
+				for (int x = 0; x < width; ++x)
+				{
+					if (nodes[(y * width) + x].GetComponent<FEMNode>().ue == false
+								   && nodes[(y * width) + x].GetComponent<FEMNode>().de == false
+								   && nodes[(y * width) + x].GetComponent<FEMNode>().le == false
+								   && nodes[(y * width) + x].GetComponent<FEMNode>().re == false)
+					{
+						nodes[(y * width) + x].GetComponent<SpriteRenderer>().enabled = false;
+					}
+				}
+			}
+		}
+		if (renderNodes == false)
+		{
+			for (int y = 0; y < height; ++y)
+			{
+				for (int x = 0; x < width; ++x)
+				{
+					nodes[(y * width) + x].GetComponent<SpriteRenderer>().enabled = false;
+				}
+			}
+		}
 	}
 
 	void InitNodes()
@@ -186,58 +216,10 @@ public class FEMShape : MonoBehaviour
 		{
 			nodes[i].transform.SetParent(gameObject.transform);
 		}
-		// Only render edges if setting is on
-		if (edgesOnly == true)
-		{
-			for (int y = 0; y < height; ++y)
-			{
-				for (int x = 0; x < width; ++x)
-				{
-					if (nodes[(y * width) + x].GetComponent<FEMNode>().ue == false
-								   && nodes[(y * width) + x].GetComponent<FEMNode>().de == false
-								   && nodes[(y * width) + x].GetComponent<FEMNode>().le == false
-								   && nodes[(y * width) + x].GetComponent<FEMNode>().re == false)
-					{
-						nodes[(y * width) + x].GetComponent<SpriteRenderer>().enabled = false;
-					}
-				}
-			}
-		}
-
 	}
 
 	void InitElements()
 	{
-		/*
-			0----------------1
-			|				 |
-			|				 |
-			|				 |
-			|				 |
-			|				 |
-			5----------------6
-		*/
-		//GameObject A, B, C, D;
-		//A = nodes[6];
-		//B = nodes[7];
-		//C = nodes[1];
-		//D = nodes[2];
-
-		//Vector3 nodesCentre = new Vector3((A.transform.localPosition.x + B.transform.localPosition.x) / 2,
-		//								(A.transform.localPosition.y + C.transform.localPosition.y) / 2,
-		//									0.0f);
-		//Vector3 centre = new Vector3(0.0f, 0.0f, 0.0f);
-		//elements[0] = Instantiate(element, centre, Quaternion.identity);
-		//elements[0].transform.SetParent(gameObject.transform);
-		//elements[0].transform.localPosition = centre;
-
-		//elements[0].GetComponent<FEMElement>().nodes[0] = A;
-		//elements[0].GetComponent<FEMElement>().nodes[1] = B;
-		//elements[0].GetComponent<FEMElement>().nodes[2] = C;
-		//elements[0].GetComponent<FEMElement>().nodes[3] = D;
-
-		//elements[0].GetComponent<FEMElement>().DoMesh();
-
 		for (int y = 0; y < height; ++y)
 		{
 			for (int x = 0; x < width; ++x)
@@ -275,7 +257,7 @@ public class FEMShape : MonoBehaviour
 
 		elements[elementNum].GetComponent<FEMElement>().DoMesh();
 
-		Debug.Log($"Create element. nodeNum: {nodeNum}, elementNum: {elementNum}");
+		//Debug.Log($"Create element. nodeNum: {nodeNum}, elementNum: {elementNum}");
 	}
 
 	void CalculatePolyCollider()
