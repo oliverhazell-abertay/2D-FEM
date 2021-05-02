@@ -208,36 +208,6 @@ public class FEMShape : MonoBehaviour
 
 	void InitElements()
 	{
-		/*
-			0----------------1
-			|				 |
-			|				 |
-			|				 |
-			|				 |
-			|				 |
-			5----------------6
-		*/
-		//GameObject A, B, C, D;
-		//A = nodes[6];
-		//B = nodes[7];
-		//C = nodes[1];
-		//D = nodes[2];
-
-		//Vector3 nodesCentre = new Vector3((A.transform.localPosition.x + B.transform.localPosition.x) / 2,
-		//								(A.transform.localPosition.y + C.transform.localPosition.y) / 2,
-		//									0.0f);
-		//Vector3 centre = new Vector3(0.0f, 0.0f, 0.0f);
-		//elements[0] = Instantiate(element, centre, Quaternion.identity);
-		//elements[0].transform.SetParent(gameObject.transform);
-		//elements[0].transform.localPosition = centre;
-
-		//elements[0].GetComponent<FEMElement>().nodes[0] = A;
-		//elements[0].GetComponent<FEMElement>().nodes[1] = B;
-		//elements[0].GetComponent<FEMElement>().nodes[2] = C;
-		//elements[0].GetComponent<FEMElement>().nodes[3] = D;
-
-		//elements[0].GetComponent<FEMElement>().DoMesh();
-
 		for (int y = 0; y < height; ++y)
 		{
 			for (int x = 0; x < width; ++x)
@@ -255,12 +225,21 @@ public class FEMShape : MonoBehaviour
 
 	void CreateElement(int nodeNum, int elementNum)
 	{
+		/*
+		3----------------2
+		|				 |
+		|				 |
+		|				 | 
+		|				 |
+		|				 |
+		0----------------1
+		*/
 		FEMNode nodeProperties = nodes[nodeNum].GetComponent<FEMNode>();
 		GameObject A, B, C, D;
 		A = nodes[nodeNum];
 		B = nodeProperties.rightAdj;
-		C = nodeProperties.upAdj;
-		D = nodeProperties.upAdj.GetComponent<FEMNode>().rightAdj;
+		C = nodeProperties.upAdj.GetComponent<FEMNode>().rightAdj;
+		D = nodeProperties.upAdj;
 		
 		Vector3 centre = new Vector3(0.0f, 0.0f, 0.0f);
 		elements[elementNum] = Instantiate(element, centre, Quaternion.identity);
