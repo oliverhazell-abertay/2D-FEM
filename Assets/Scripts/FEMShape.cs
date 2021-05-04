@@ -28,7 +28,6 @@ public class FEMShape : MonoBehaviour
 	public GameObject element;
 
 	Renderer rend;
-	//public Vector3 AB, BC, CD, DA;
 
 	// Variables for grid of nodes
 	public int width, height;
@@ -75,14 +74,7 @@ public class FEMShape : MonoBehaviour
 		CalculatePolyCollider();
 		polyCollider.enabled = false;
 		polyCollider.SetPath(0, polygonPath);
-		polyCollider.enabled = true;
-		
-		// Update vectors between nodes
-		//AB = nodes[1].transform.position - nodes[0].transform.position;
-		//BC = nodes[2].transform.position - nodes[1].transform.position;
-		//CD = nodes[3].transform.position - nodes[2].transform.position;
-		//DA = nodes[0].transform.position - nodes[3].transform.position;
-		
+		polyCollider.enabled = true;	
 	}
 
 	// Update is called once per frame
@@ -254,7 +246,7 @@ public class FEMShape : MonoBehaviour
 
 		elements[elementNum].GetComponent<FEMElement>().DoMesh();
 
-		Debug.Log($"Create element. nodeNum: {nodeNum}, elementNum: {elementNum}");
+		//Debug.Log($"Create element. nodeNum: {nodeNum}, elementNum: {elementNum}");
 	}
 
 	void CalculatePolyCollider()
