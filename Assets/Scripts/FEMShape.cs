@@ -80,11 +80,6 @@ public class FEMShape : MonoBehaviour
 	// Update is called once per frame
 	void Update()
 	{
-		
-		if (Input.GetKeyDown("d"))
-		{
-			elements[0].transform.position = new Vector3(0.0f, 0.0f, 0.0f);
-		}
 		// Calculate path for collidor and set it
 		CalculatePolyCollider();
 		polyCollider.enabled = false;
@@ -303,8 +298,6 @@ public class FEMShape : MonoBehaviour
 
 	void Deform(GameObject startNode)
 	{
-		//Debug.Log("Deform() called!");
-
 		// Calculate force per node
 		float currentForce = 5.0f;
 		Vector3 impactPos = startNode.transform.position;
@@ -437,14 +430,5 @@ public class FEMShape : MonoBehaviour
 				perturbed2.Add(currentNode.downAdj);
 			}
 		}
-	}
-
-	public float[,] InverseMatrix33(float[,] matrix)
-	{
-		float[,] inverse = new float[matrix.GetLength(0), matrix.GetLength(1)];
-		//
-		// NEEDS TO BE IMPLEMENTED
-		//
-		return inverse;
 	}
 }

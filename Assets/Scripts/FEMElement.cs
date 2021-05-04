@@ -34,6 +34,8 @@ public class FEMElement : MonoBehaviour
 	public float v1, v2, v3, v4; // Node y values
 	//float t = 1.0f; // Thickness
 
+	
+
 	public float test;
 
 	void Start()
@@ -72,6 +74,8 @@ public class FEMElement : MonoBehaviour
 		// Needs to be recalculated after every collision/deformation
 		B = CalculateB();
 		CalculateKe();
+
+		Determinant(Ke, 8);
 	}
 
 	// Called every frame
@@ -209,9 +213,17 @@ public class FEMElement : MonoBehaviour
 	public void CalculateKe()
 	{
 		Ke = new float[8, 8];
-		B = CalculateB();
 		float[,] Bt = Transpose(B);
-		test = B[0, 0];
+		
+		// Ke = A * (B^T * D * B)
+		// Note: A instead of A*t as thickness is constant due to 2D view
+
+		// B^T * D
+		float[,] BtD = MultiplyMatrices(Bt, D);
+		// (B^T*D) * B
+		Ke = MultiplyMatrices(BtD, B);
+		// A(B^T*D*B)
+		Ke = MultiplyMatrixByScalar(Ke, GetArea());
 	}
 
 	// Calculate area by splitting the quadrilateral element
@@ -323,5 +335,80 @@ public class FEMElement : MonoBehaviour
 				result[i, j] = (mA[i, 0] * mB[0, j]) + (mA[i, 1] * mB[1, j]) + (mA[i, 2] * mB[2, j]);
 
 		return result;
+	}
+
+	// Find inverse of matrix using James McCaffrey's inverse functions
+	public float[,] InverseMatrix(float[,] matrix)
+	{
+		if(matrix.GetLength(0) != matrix.GetLength(1))
+		{
+			Debug.Log("Can't inverse matrix that isn't square");
+			return null;
+		}
+
+		float[,] inverse = ToMatrix(GetComponent<MatrixInverseProgram>().MatrixInverse(ToJaggedArray(matrix)));
+		float det = Determinant(matrix, matrix.GetLength(0));
+		return inverse;
+	}
+
+	// Helper function to convert a 2D array to a jagged array
+	// Needed for Inverting matrices
+	public double[][] ToJaggedArray(float[,] matrix)
+	{
+		int matrixWidth = matrix.GetLength(0);
+		int matrixHeight = matrix.GetLength(1);
+		double[][] jaggedArray = new double[matrixWidth][];
+
+		for(int i = 0; i < matrixWidth; i++)
+		{
+			jaggedArray[i] = new double[matrixHeight];
+			for(int j = 0; j < matrixHeight; j++)
+			{
+				jaggedArray[i][j] = matrix[i, j];
+			}
+		}
+		
+		return jaggedArray;
+	}
+
+	// Helper function to convert a jagged array back to a 2D array
+	// Needed for converting the inverted matrix back
+	// Only for 8x8 array!
+	public float[,] ToMatrix(double[][] jaggedArray)
+	{
+		int jaggedArrayWidth = 8;
+		int jaggedArrayHeight = 8;
+
+		float[,] tempMatrix = new float [8, 8];
+
+		for (int i = 0; i < jaggedArrayWidth; i++)
+		{
+			for (int j = 0; j < jaggedArrayHeight; j++)
+			{
+				tempMatrix[i, j] = (float)jaggedArray[i][j];
+			}
+		}
+
+		return tempMatrix;
+	}
+
+	// Determinant for higher order matrices
+	// Needed for inverse of Ke
+	public float Determinant(float[,] a, int n)
+	{
+		float determinant;
+		for (int i = 0; i < n - 1; i++)
+		{
+			for (int j = i + 1; j < n; j++)
+			{
+				determinant = a[j, i] / a[i, i];
+				for (int k = i; k < n; k++)
+					a[j, k] = a[j, k] - determinant * a[i, k];
+			}
+		}
+		determinant = 1;
+		for (int i = 0; i < n; i++)
+			determinant = determinant * a[i, i];
+		return determinant;
 	}
 }
