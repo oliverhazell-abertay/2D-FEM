@@ -90,12 +90,6 @@ public class FEMShape : MonoBehaviour
 		polyCollider.enabled = false;
 		polyCollider.SetPath(0, polygonPath);
 		polyCollider.enabled = true;
-
-		for (int elementNum = 0; elementNum < elements.Length; ++elementNum)
-		{
-			elements[elementNum].GetComponent<FEMElement>().DoMesh();
-		}
-
 	}
 
 	void InitNodes()
@@ -443,5 +437,14 @@ public class FEMShape : MonoBehaviour
 				perturbed2.Add(currentNode.downAdj);
 			}
 		}
+	}
+
+	public float[,] InverseMatrix33(float[,] matrix)
+	{
+		float[,] inverse = new float[matrix.GetLength(0), matrix.GetLength(1)];
+		//
+		// NEEDS TO BE IMPLEMENTED
+		//
+		return inverse;
 	}
 }

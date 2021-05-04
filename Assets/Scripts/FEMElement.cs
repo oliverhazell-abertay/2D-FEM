@@ -31,9 +31,8 @@ public class FEMElement : MonoBehaviour
 	public float v = 0.3f; // Poisson's Ratio
 	float[,] Ke; // Stiffness matrix
 	public float u1, u2, u3, u4; // Node x values
-	float v1, v2, v3, v4; // Node y values
+	public float v1, v2, v3, v4; // Node y values
 	//float t = 1.0f; // Thickness
-	float midX, midY;   // Midpoint
 
 	public float test;
 
@@ -71,10 +70,32 @@ public class FEMElement : MonoBehaviour
 
 		// Get Stress-Displacement matrix (B) and Element stiffness matrix (Ke)
 		// Needs to be recalculated after every collision/deformation
-		B = CalculateB(0.0f, 0.0f);
+		B = CalculateB();
 		CalculateKe();
 	}
 
+	// Called every frame
+	void Update()
+	{
+		// Node 0 (u1, v1)
+		u1 = nodes[0].transform.localPosition.x;
+		v1 = nodes[0].transform.localPosition.y;
+		// Node 1 (u2, v2)
+		u2 = nodes[1].transform.localPosition.x;
+		v2 = nodes[1].transform.localPosition.y;
+		// Node 2 (u3, v3)
+		u3 = nodes[2].transform.localPosition.x;
+		v3 = nodes[2].transform.localPosition.y;
+		// Node 3 (u4, v4)
+		u4 = nodes[3].transform.localPosition.x;
+		v4 = nodes[3].transform.localPosition.y;
+
+		DoMesh();
+		B = CalculateB();
+		CalculateKe();
+	}
+
+	// Calculate mesh vertices
 	public void DoMesh()
 	{
 		meshRenderer = gameObject.GetComponent<MeshRenderer>();
@@ -122,6 +143,7 @@ public class FEMElement : MonoBehaviour
 		meshFilter.mesh = mesh;
 	}
 
+	// Calculate elasticity matrix
 	public void CalculateD()
 	{
 		D = new float[3, 3]{{1.0f, v, 0.0f},
@@ -134,7 +156,8 @@ public class FEMElement : MonoBehaviour
 		D = MultiplyMatrixByScalar(D, Eover);
 	}
 
-	public float[,] CalculateB(float x, float y)
+	// Calculate stress-displacement matrix
+	public float[,] CalculateB()
 	{
 		float[,] tempB;
 		tempB = new float[3, 8];
@@ -181,25 +204,12 @@ public class FEMElement : MonoBehaviour
 
 		return tempB;
 	}
-
-	// Calculate transpose of matrix
-	public float[,] Transpose(float[,] matrix)
-	{
-		int matrixWidth = matrix.GetLength(0);
-		int matrixHeight = matrix.GetLength(1);
-		float[,] transposed = new float[matrixHeight, matrixWidth];
-
-		for (int rowNum = 0; rowNum < matrixHeight; rowNum++)
-			for (int colNum = 0; colNum < matrixWidth; colNum++)
-				transposed[rowNum, colNum] = matrix[colNum, rowNum];
-
-		return transposed;
-	}
-
+	
+	// Calculate stiffness matrix of element
 	public void CalculateKe()
 	{
 		Ke = new float[8, 8];
-		B = CalculateB(0.0f, 0.0f);
+		B = CalculateB();
 		float[,] Bt = Transpose(B);
 		test = B[0, 0];
 	}
@@ -233,6 +243,25 @@ public class FEMElement : MonoBehaviour
 		return aArea + bArea;
 	}
 
+	// Calculate transpose of matrix
+	public float[,] Transpose(float[,] matrix)
+	{
+		int matrixWidth = matrix.GetLength(0);
+		int matrixHeight = matrix.GetLength(1);
+		float[,] transposed = new float[matrixHeight, matrixWidth];
+
+		for (int rowNum = 0; rowNum < matrixHeight; rowNum++)
+			for (int colNum = 0; colNum < matrixWidth; colNum++)
+				transposed[rowNum, colNum] = matrix[colNum, rowNum];
+
+		return transposed;
+	}
+	// Calculate determinant of 2x2 matrix
+	public float Determinant22(float a, float b, float c, float d)
+	{
+		return (a*d)-(b*c);
+	}
+
 	// Calculate determinant of 3x3 matrix made from 3 nodes
 	// Used to calculate area of triangle
 	// Nodes passed in as 1D array of floats with a size of 2 
@@ -257,11 +286,12 @@ public class FEMElement : MonoBehaviour
 		return determinant;
 	}
 
+	// Multiplies matrix by a scalar value
 	public float[,] MultiplyMatrixByScalar(float[,] matrix, float scalar)
 	{
 		int matrixWidth = matrix.GetLength(0);
 		int matrixHeight = matrix.GetLength(1);
-		float[,] result = new float[3, 3];
+		float[,] result = new float[matrixWidth, matrixHeight];
 
 		for (int i = 0; i < matrixWidth; i++)
 			for (int j = 0; j < matrixHeight; j++)
@@ -270,13 +300,27 @@ public class FEMElement : MonoBehaviour
 		return result;
 	}
 
+	// Multiplies two matrices together
 	public float[,] MultiplyMatrices(float[,] mA, float[,] mB)
 	{
-		float[,] result;
 		int aRows = mA.GetLength(0);
 		int aCols = mA.GetLength(1);
 		int bRows = mB.GetLength(0);
 		int bCols = mB.GetLength(1);
+
+		// Check matrices are able to be multiplied
+		if(aCols != bRows)
+		{
+			Debug.Log("Incompatible matrices trying to be multiplied!");
+			return null;
+		}
+
+		float[,] result = new float[aRows, bCols];
+
+		// Multiply each row of matrix A by the column of matrix B
+		for(int i = 0; i < aRows; i++)
+			for(int j = 0; j < bCols; j++)
+				result[i, j] = (mA[i, 0] * mB[0, j]) + (mA[i, 1] * mB[1, j]) + (mA[i, 2] * mB[2, j]);
 
 		return result;
 	}
