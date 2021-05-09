@@ -29,15 +29,14 @@ public class FEMElement : MonoBehaviour
 	public float[,] D;  // Elasticity Matrix
 	public float E = 31200000.0f;  // Young's Modulus of Elasticity - 31.2x10^6 psi
 	public float v = 0.3f; // Poisson's Ratio
-	float[,] Ke; // Stiffness matrix
+	public float[,] Ke; // Stiffness matrix
 	public float u1, u2, u3, u4; // Node x values
 	public float v1, v2, v3, v4; // Node y values
 	//float t = 1.0f; // Thickness
-
+	public GameObject leftAdj, rightAdj, upAdj, downAdj; // Neighbour elements
+	public float neighbourCount;
+	public float midX, midY;	// Midpoint coords
 	
-
-	public float test;
-
 	void Start()
 	{
 		/*
@@ -50,7 +49,6 @@ public class FEMElement : MonoBehaviour
 			0----------------1
 					2a
 		*/
-
 		// Node 0 (u1, v1)
 		u1 = nodes[0].transform.localPosition.x;
 		v1 = nodes[0].transform.localPosition.y;
@@ -74,13 +72,12 @@ public class FEMElement : MonoBehaviour
 		// Needs to be recalculated after every collision/deformation
 		B = CalculateB();
 		CalculateKe();
-
-		Determinant(Ke, 8);
 	}
 
 	// Called every frame
 	void Update()
 	{
+		// Update node positions
 		// Node 0 (u1, v1)
 		u1 = nodes[0].transform.localPosition.x;
 		v1 = nodes[0].transform.localPosition.y;
@@ -94,7 +91,19 @@ public class FEMElement : MonoBehaviour
 		u4 = nodes[3].transform.localPosition.x;
 		v4 = nodes[3].transform.localPosition.y;
 
+		// Calculate midpoint
+		midX = (nodes[0].transform.position.x + nodes[1].transform.position.x) / 2;
+		midY = (nodes[0].transform.position.y + nodes[2].transform.position.y) / 2;
+
+		// Calculate mesh
 		DoMesh();
+	}
+
+	// Recalculate B, Ke, and area when nodes move from collision
+	// Called with deform function in FEMShape.cs
+	public void RefreshMatrices()
+	{
+		area = GetArea();
 		B = CalculateB();
 		CalculateKe();
 	}
@@ -105,15 +114,16 @@ public class FEMElement : MonoBehaviour
 		meshRenderer = gameObject.GetComponent<MeshRenderer>();
 		meshRenderer.sharedMaterial = new Material(Shader.Find("Standard"));
 		meshFilter = gameObject.GetComponent<MeshFilter>();
+		Vector3 shapeScale = gameObject.transform.parent.transform.localScale;
 
 		Mesh mesh = new Mesh();
 
 		Vector3[] vertices = new Vector3[4]
 		{
-			nodes[0].transform.localPosition,
-			nodes[1].transform.localPosition,
-			nodes[2].transform.localPosition,
-			nodes[3].transform.localPosition
+			Vector3.Scale(nodes[0].transform.localPosition, shapeScale),
+			Vector3.Scale(nodes[1].transform.localPosition, shapeScale),
+			Vector3.Scale(nodes[2].transform.localPosition, shapeScale),
+			Vector3.Scale(nodes[3].transform.localPosition, shapeScale)
 		};
 		mesh.vertices = vertices;
 
@@ -347,7 +357,6 @@ public class FEMElement : MonoBehaviour
 		}
 
 		float[,] inverse = ToMatrix(GetComponent<MatrixInverseProgram>().MatrixInverse(ToJaggedArray(matrix)));
-		float det = Determinant(matrix, matrix.GetLength(0));
 		return inverse;
 	}
 
@@ -392,23 +401,13 @@ public class FEMElement : MonoBehaviour
 		return tempMatrix;
 	}
 
-	// Determinant for higher order matrices
-	// Needed for inverse of Ke
-	public float Determinant(float[,] a, int n)
+	public void DeformNodes(float[,] displacementMatrix)
 	{
-		float determinant;
-		for (int i = 0; i < n - 1; i++)
-		{
-			for (int j = i + 1; j < n; j++)
-			{
-				determinant = a[j, i] / a[i, i];
-				for (int k = i; k < n; k++)
-					a[j, k] = a[j, k] - determinant * a[i, k];
-			}
-		}
-		determinant = 1;
-		for (int i = 0; i < n; i++)
-			determinant = determinant * a[i, i];
-		return determinant;
+
+	}
+
+	public void CalculateF()
+	{
+
 	}
 }

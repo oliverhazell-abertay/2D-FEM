@@ -49,6 +49,9 @@ public class FEMShape : MonoBehaviour
 	// Variables for rendering
 	public bool edgesOnly = true;
 
+	public float localX;
+	public float localY;
+
 	// Start is called before the first frame update
 	void Start()
 	{
@@ -162,7 +165,7 @@ public class FEMShape : MonoBehaviour
 				}
 			}
 		}
-		// make all nodes children of the element
+		// make all nodes children of the shape
 		for (int i = 0; i < nodes.Length; i++)
 		{
 			nodes[i].transform.SetParent(gameObject.transform);
@@ -187,6 +190,7 @@ public class FEMShape : MonoBehaviour
 
 	}
 
+	// Create elements starting from bottom left node of each element
 	void InitElements()
 	{
 		for (int y = 0; y < height; ++y)
@@ -199,6 +203,38 @@ public class FEMShape : MonoBehaviour
 				{
 					int elementNum = (nodeNum - width) - (y - 1);
 					CreateElement(nodeNum, elementNum);
+				}
+			}
+		}
+		// Assign neighbouring elements
+		for (int y = 0; y < height - 1; ++y)
+		{
+			for (int x = 0; x < width - 1; ++x)
+			{
+				int elementNum = (y * (width - 1)) + x;
+				// Left
+				if (elements[elementNum].GetComponent<FEMElement>().nodes[3].GetComponent<FEMNode>().le == false)
+				{
+					elements[elementNum].GetComponent<FEMElement>().leftAdj = elements[elementNum - 1];
+					elements[elementNum].GetComponent<FEMElement>().neighbourCount++;
+				}
+				// Right
+				if (elements[elementNum].GetComponent<FEMElement>().nodes[1].GetComponent<FEMNode>().re == false)
+				{
+					elements[elementNum].GetComponent<FEMElement>().rightAdj = elements[elementNum + 1];
+					elements[elementNum].GetComponent<FEMElement>().neighbourCount++;
+				}
+				// Up
+				if (elements[elementNum].GetComponent<FEMElement>().nodes[3].GetComponent<FEMNode>().ue == false)
+				{
+					elements[elementNum].GetComponent<FEMElement>().upAdj = elements[elementNum - (width - 1)];
+					elements[elementNum].GetComponent<FEMElement>().neighbourCount++;
+				}
+				// Down
+				if (elements[elementNum].GetComponent<FEMElement>().nodes[1].GetComponent<FEMNode>().de == false)
+				{
+					elements[elementNum].GetComponent<FEMElement>().downAdj = elements[elementNum + (width - 1)];
+					elements[elementNum].GetComponent<FEMElement>().neighbourCount++;
 				}
 			}
 		}
@@ -217,25 +253,25 @@ public class FEMShape : MonoBehaviour
 		*/
 		FEMNode nodeProperties = nodes[nodeNum].GetComponent<FEMNode>();
 		GameObject A, B, C, D;
-		A = nodes[nodeNum];
-		B = nodeProperties.rightAdj;
-		C = nodeProperties.upAdj.GetComponent<FEMNode>().rightAdj;
-		D = nodeProperties.upAdj;
-		
+		A = nodes[nodeNum];	// 0
+		B = nodeProperties.rightAdj; // 1
+		C = nodeProperties.upAdj.GetComponent<FEMNode>().rightAdj; // 2
+		D = nodeProperties.upAdj; // 3
+
+		// Instantiate element
 		Vector3 centre = new Vector3(0.0f, 0.0f, 0.0f);
 		elements[elementNum] = Instantiate(element, centre, Quaternion.identity);
 		elements[elementNum].name = $"Element ({elementNum})";
 		elements[elementNum].transform.SetParent(gameObject.transform);
 		elements[elementNum].transform.localPosition = centre;
 
+		// Assign nodes
 		elements[elementNum].GetComponent<FEMElement>().nodes[0] = A;
 		elements[elementNum].GetComponent<FEMElement>().nodes[1] = B;
 		elements[elementNum].GetComponent<FEMElement>().nodes[2] = C;
 		elements[elementNum].GetComponent<FEMElement>().nodes[3] = D;
-
+		
 		elements[elementNum].GetComponent<FEMElement>().DoMesh();
-
-		//Debug.Log($"Create element. nodeNum: {nodeNum}, elementNum: {elementNum}");
 	}
 
 	void CalculatePolyCollider()
@@ -267,36 +303,73 @@ public class FEMShape : MonoBehaviour
 		}
 	}
 
+	//// Node deformation
+	//private void OnCollisionEnter2D(Collision2D collision)
+	//{
+	//	if (collision.gameObject.tag != "Floor" && collision.relativeVelocity.magnitude > forceRequired)
+	//	{
+	//		GameObject closestNode = null;
+	//		float currentClosestDistance = 1000000.0f;
+	//		Vector3 collisionPos = collision.transform.position;
+
+	//		// Loop through nodes and find closest
+	//		for (int y = 0; y < height - 1; ++y)
+	//		{
+	//			for (int x = 0; x < width - 1; ++x)
+	//			{
+	//				int nodeNum = (y * width) + x;
+	//				float distanceToCollision = Vector3.Distance(nodes[nodeNum].transform.position, collisionPos);
+	//				if (distanceToCollision < currentClosestDistance)
+	//				{
+	//					closestNode = nodes[nodeNum];
+	//					currentClosestDistance = distanceToCollision;
+	//				}
+	//			}
+	//		}
+	//		if (closestNode != null)
+	//			NodeDeform(closestNode);
+	//		else
+	//			Debug.Log("Couldn't find nearest node to collision!");
+	//	}
+	//}
+
+	// Element deformation
 	private void OnCollisionEnter2D(Collision2D collision)
 	{
 		if (collision.gameObject.tag != "Floor" && collision.relativeVelocity.magnitude > forceRequired)
 		{
-			GameObject closestNode = null;
+			GameObject closestElement = null;
 			float currentClosestDistance = 1000000.0f;
 			Vector3 collisionPos = collision.transform.position;
 
-			// Loop through nodes and find closest
-			for (int y = 0; y < height; ++y)
+			int nearestElementNum = 0;
+			// Loop through elements and find closest
+			for (int y = 0; y < height - 1; ++y)
 			{
-				for (int x = 0; x < width; ++x)
+				for (int x = 0; x < width - 1; ++x)
 				{
-					int nodeNum = (y * width) + x;
-					float distanceToCollision = Vector3.Distance(nodes[nodeNum].transform.position, collisionPos);
+					int elementNum = (y * (width - 1)) + x;
+					Vector3 currentElementPos = new Vector3(elements[elementNum].GetComponent<FEMElement>().midX,
+																elements[elementNum].GetComponent<FEMElement>().midY,
+																	0.0f);
+					float distanceToCollision = Vector3.Distance(currentElementPos, collisionPos);
 					if (distanceToCollision < currentClosestDistance)
 					{
-						closestNode = nodes[nodeNum];
+						closestElement = elements[elementNum];
+						nearestElementNum = elementNum;
 						currentClosestDistance = distanceToCollision;
 					}
 				}
 			}
-			if (closestNode != null)
-				Deform(closestNode);
+			if (closestElement != null)
+				//ElementDeform(closestElement);
+				Debug.Log("Closest element: " + nearestElementNum);
 			else
-				Debug.Log("Couldn't find nearest node to collision!");
+				Debug.Log("Couldn't find nearest element to collision!");
 		}
 	}
 
-	void Deform(GameObject startNode)
+	void NodeDeform(GameObject startNode)
 	{
 		// Calculate force per node
 		float currentForce = 5.0f;
@@ -321,7 +394,7 @@ public class FEMShape : MonoBehaviour
 
 		// Displace first layer of perturbed nodes
 		currentForce *= 0.5f;
-		foreach(GameObject node in perturbed1)
+		foreach (GameObject node in perturbed1)
 		{
 			displaceDir = node.transform.position - impactPos;
 			node.transform.position += (displaceDir).normalized * (currentForce * stiffness);
@@ -339,6 +412,26 @@ public class FEMShape : MonoBehaviour
 		perturbed1.Clear();
 		perturbed2.Clear();
 	}
+
+	//void ElementDeform(GameObject startElement, Collision2D collision)
+	//{
+	//	// Calculate force per element
+	//	float currentForce = 5.0f;
+		
+	//	// F = KX
+	//	// K^-1 * F = X
+	//	float[,] iKe = startElement.GetComponent<FEMElement>().InverseMatrix(startElement.GetComponent<FEMElement>().Ke);
+	//	// Calculate F
+	//	float[] F = new float[8];
+	//	foreach (GameObject node in startElement.GetComponent<FEMElement>().nodes)
+	//	{
+	//		F[i] = collision.transform.position.x - node.transform.position.x;
+	//		i++;
+	//		F[i] = collision.transform.position.y - node.transform.position.y;
+	//	}
+	//	// Calculate X by multiplying F by the inverse of Ke
+	//	float[] x = startElement.GetComponent<FEMElement>().MultiplyMatrices(iKe, F);
+	//}
 
 	void AddNeighboursToPerturbed1(GameObject currentNodeObject)
 	{

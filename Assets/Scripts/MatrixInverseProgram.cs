@@ -6,67 +6,11 @@ using UnityEngine;
   {
      void Main(string[] args)
     {
-      Console.WriteLine("\nBegin matrix inverse using Crout LU decomp demo \n");
-
-      double[][] m = MatrixCreate(4, 4); 
-      m[0][0] = 3.0; m[0][1] = 7.0; m[0][2] = 2.0; m[0][3] = 5.0;
-      m[1][0] = 1.0; m[1][1] = 8.0; m[1][2] = 4.0; m[1][3] = 2.0;
-      m[2][0] = 2.0; m[2][1] = 1.0; m[2][2] = 9.0; m[2][3] = 3.0;
-      m[3][0] = 5.0; m[3][1] = 4.0; m[3][2] = 7.0; m[3][3] = 1.0;
-
-
-      Console.WriteLine("Original matrix m is ");
-      Console.WriteLine(MatrixAsString(m));
-
-      double d = MatrixDeterminant(m);
-      if (Math.Abs(d) < 1.0e-5)
-        Console.WriteLine("Matrix has no inverse");
-
-      double[][] inv = MatrixInverse(m);
-
-      Console.WriteLine("Inverse matrix inv is ");
-      Console.WriteLine(MatrixAsString(inv));
-
-      double[][] prod = MatrixProduct(m, inv);
-      Console.WriteLine("The product of m * inv is ");
-      Console.WriteLine(MatrixAsString(prod));
-
-      Console.WriteLine("========== \n");
-
-      double[][] lum;
-      int[] perm;
-      int toggle = MatrixDecompose(m, out lum, out perm);
-      Console.WriteLine("The combined lower-upper decomposition of m is");
-      Console.WriteLine(MatrixAsString(lum));
-
-      double[][] lower = ExtractLower(lum);
-      double[][] upper = ExtractUpper(lum);
-
-      Console.WriteLine("The lower part of LUM is");
-      Console.WriteLine(MatrixAsString(lower));
-
-      Console.WriteLine("The upper part of LUM is");
-      Console.WriteLine(MatrixAsString(upper));
-
-      Console.WriteLine("The perm[] array is");
-      ShowVector(perm);
-
-      double[][] lowTimesUp = MatrixProduct(lower, upper);
-      Console.WriteLine("The product of lower * upper is ");
-      Console.WriteLine(MatrixAsString(lowTimesUp));
-
-
-      Console.WriteLine("\nEnd matrix inverse demo \n");
-      Console.ReadLine();
-
+     
     } // Main
 
      void ShowVector(int[] vector)
     {
-      Console.Write("   ");
-      for (int i = 0; i < vector.Length; ++i)
-        Console.Write(vector[i] + " ");
-      Console.WriteLine("\n");
     }
 
     public double[][] MatrixInverse(double[][] matrix)
