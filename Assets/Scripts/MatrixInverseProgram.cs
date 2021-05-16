@@ -37,11 +37,11 @@ using UnityEngine;
           else
             b[j] = 0.0;
  
-        double[] x = Helper(lum, b); // 
+        double[] x = Helper(lum, b); //
         for (int j = 0; j < n; ++j)
           result[j][i] = x[j];
-      }
-      return result;
+        }
+        return result;
     } // MatrixInverse
 
      int MatrixDecompose(double[][] m, out double[][] lum, out int[] perm)
@@ -126,13 +126,16 @@ using UnityEngine;
           sum -= luMatrix[i][j] * x[j];
         x[i] = sum;
       }
-
+        if (luMatrix[n - 1][n - 1] == 0)// Avoid divide by zero
+			luMatrix[n - 1][n - 1] = 1;
       x[n - 1] /= luMatrix[n - 1][n - 1];
       for (int i = n - 2; i >= 0; --i)
       {
         double sum = x[i];
         for (int j = i + 1; j < n; ++j)
           sum -= luMatrix[i][j] * x[j];
+            if (luMatrix[i][i] == 0) // Avoid divide by zero
+                luMatrix[i][i] = 1;
         x[i] = sum / luMatrix[i][i];
       }
 

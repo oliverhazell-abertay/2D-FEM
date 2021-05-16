@@ -355,8 +355,8 @@ public class FEMElement : MonoBehaviour
 			Debug.Log("Can't inverse matrix that isn't square");
 			return null;
 		}
-
 		float[,] inverse = ToMatrix(GetComponent<MatrixInverseProgram>().MatrixInverse(ToJaggedArray(matrix)));
+		Debug.Log($"inverse: {inverse[0, 0]}");
 		return inverse;
 	}
 
@@ -373,6 +373,7 @@ public class FEMElement : MonoBehaviour
 			jaggedArray[i] = new double[matrixHeight];
 			for(int j = 0; j < matrixHeight; j++)
 			{
+				//Debug.Log($"Into jagged array {matrix[i, j]}");
 				jaggedArray[i][j] = matrix[i, j];
 			}
 		}
@@ -394,6 +395,7 @@ public class FEMElement : MonoBehaviour
 		{
 			for (int j = 0; j < jaggedArrayHeight; j++)
 			{
+				//Debug.Log($"Into array {(float)jaggedArray[i][j]}");
 				tempMatrix[i, j] = (float)jaggedArray[i][j];
 			}
 		}
@@ -401,9 +403,23 @@ public class FEMElement : MonoBehaviour
 		return tempMatrix;
 	}
 
-	public void DeformNodes(float[,] displacementMatrix)
+	public void DeformNodes(float[,] displacementMatrix, float[,] forceMatrix)
 	{
-
+		/*
+			3----------------2
+			|				 |
+			|				 |
+			|				 | 2b
+			|				 |
+			|				 |
+			0----------------1
+					2a
+		*/
+		Debug.Log($"DeformNodes() called! xMatrix = {displacementMatrix[0, 0]}");
+		nodes[0].transform.localPosition = nodes[0].transform.localPosition + new Vector3(displacementMatrix[0, 0], displacementMatrix[1, 0], 0.0f);
+		nodes[1].transform.localPosition = nodes[1].transform.localPosition + new Vector3(displacementMatrix[2, 0], displacementMatrix[3, 0], 0.0f);
+		nodes[2].transform.localPosition = nodes[2].transform.localPosition + new Vector3(displacementMatrix[4, 0], displacementMatrix[5, 0], 0.0f);
+		nodes[3].transform.localPosition = nodes[3].transform.localPosition + new Vector3(displacementMatrix[6, 0], displacementMatrix[7, 0], 0.0f);
 	}
 
 	public void CalculateF()

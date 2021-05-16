@@ -40,7 +40,8 @@ public class FEMShape : MonoBehaviour
 
 	// Variables for collision
 	public float stiffness = 0.05f;
-	public float forceRequired = 0;
+	public float forceRequired = 0.0f;
+	public float damping = 0.0f;
 
 	// Perturbed Lists
 	public List<GameObject> perturbed1;
@@ -333,7 +334,7 @@ public class FEMShape : MonoBehaviour
 	//	}
 	//}
 
-	// Element deformation
+	// Deformation based on elements
 	private void OnCollisionEnter2D(Collision2D collision)
 	{
 		if (collision.gameObject.tag != "Floor" && collision.relativeVelocity.magnitude > forceRequired)
@@ -362,13 +363,14 @@ public class FEMShape : MonoBehaviour
 				}
 			}
 			if (closestElement != null)
-				//ElementDeform(closestElement);
-				Debug.Log("Closest element: " + nearestElementNum);
+				ElementDeform(closestElement, collision);
+				//Debug.Log("Closest element: " + nearestElementNum);
 			else
 				Debug.Log("Couldn't find nearest element to collision!");
 		}
 	}
 
+	// Deformation based on nodes
 	void NodeDeform(GameObject startNode)
 	{
 		// Calculate force per node
@@ -413,25 +415,32 @@ public class FEMShape : MonoBehaviour
 		perturbed2.Clear();
 	}
 
-	//void ElementDeform(GameObject startElement, Collision2D collision)
-	//{
-	//	// Calculate force per element
-	//	float currentForce = 5.0f;
-		
-	//	// F = KX
-	//	// K^-1 * F = X
-	//	float[,] iKe = startElement.GetComponent<FEMElement>().InverseMatrix(startElement.GetComponent<FEMElement>().Ke);
-	//	// Calculate F
-	//	float[] F = new float[8];
-	//	foreach (GameObject node in startElement.GetComponent<FEMElement>().nodes)
-	//	{
-	//		F[i] = collision.transform.position.x - node.transform.position.x;
-	//		i++;
-	//		F[i] = collision.transform.position.y - node.transform.position.y;
-	//	}
-	//	// Calculate X by multiplying F by the inverse of Ke
-	//	float[] x = startElement.GetComponent<FEMElement>().MultiplyMatrices(iKe, F);
-	//}
+	void ElementDeform(GameObject startElement, Collision2D collision)
+	{
+		// Calculate force per element
+		float currentForce = 5.0f;
+
+		// F = KX
+		// K^-1 * F = X
+		float[,] iKe = startElement.GetComponent<FEMElement>().InverseMatrix(startElement.GetComponent<FEMElement>().Ke);
+		// Calculate F
+		float[,] F = new float[8,1];
+		int fNum = 0;	// Index for force matrix
+		foreach (GameObject node in startElement.GetComponent<FEMElement>().nodes)
+		{
+			float xDist = node.transform.position.x - collision.transform.position.x;
+			float yDist = node.transform.position.y - collision.transform.position.y;
+			Vector3 dist = node.transform.position - collision.transform.position;
+			F[fNum, 0] = xDist * damping;
+			fNum++;
+			F[fNum, 0] = yDist * damping;
+			fNum++;
+		}
+		// Calculate X by multiplying F by the inverse of Ke
+		float[,] X = startElement.GetComponent<FEMElement>().MultiplyMatrices(iKe, F);
+		Debug.Log($"X[0, 0] = {iKe[0, 0]}");
+		startElement.GetComponent<FEMElement>().DeformNodes(X, F);
+	}
 
 	void AddNeighboursToPerturbed1(GameObject currentNodeObject)
 	{
