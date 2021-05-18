@@ -431,7 +431,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3341699387433921562, guid: 53782314d08ba4c44bd01b9d80da0232, type: 3}
       propertyPath: damping
-      value: 0.1
+      value: 0.05
       objectReference: {fileID: 0}
     - target: {fileID: 3341699387433921562, guid: 53782314d08ba4c44bd01b9d80da0232, type: 3}
       propertyPath: element

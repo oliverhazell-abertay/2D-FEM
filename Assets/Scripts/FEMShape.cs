@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Profiling;
 
 public class FEMShape : MonoBehaviour
 {
@@ -41,7 +42,7 @@ public class FEMShape : MonoBehaviour
 	// Variables for collision
 	public float stiffness = 0.05f;
 	public float forceRequired = 0.0f;
-	public float damping = 0.0f;
+	public float damping = 0.0f;	// N/M
 
 	// Perturbed Lists
 	public List<GameObject> perturbed1;
@@ -339,6 +340,8 @@ public class FEMShape : MonoBehaviour
 	{
 		if (collision.gameObject.tag != "Floor" && collision.relativeVelocity.magnitude > forceRequired)
 		{
+			float timerStart = Time.realtimeSinceStartup;
+
 			GameObject closestElement = null;
 			float currentClosestDistance = 1000000.0f;
 			Vector3 collisionPos = collision.transform.position;
@@ -364,9 +367,10 @@ public class FEMShape : MonoBehaviour
 			}
 			if (closestElement != null)
 				ElementDeform(closestElement, collision);
-				//Debug.Log("Closest element: " + nearestElementNum);
 			else
 				Debug.Log("Couldn't find nearest element to collision!");
+
+			Debug.Log("Time taken to deform: " + ((Time.realtimeSinceStartup - timerStart) * 1000));
 		}
 	}
 
@@ -418,118 +422,126 @@ public class FEMShape : MonoBehaviour
 	void ElementDeform(GameObject startElement, Collision2D collision)
 	{
 		// Calculate force per element
-		float currentForce = 5.0f;
+		float collisionForce = collision.relativeVelocity.magnitude;
 
 		// F = KX
 		// K^-1 * F = X
 		float[,] iKe = startElement.GetComponent<FEMElement>().InverseMatrix(startElement.GetComponent<FEMElement>().Ke);
 		// Calculate F
 		float[,] F = new float[8,1];
-		int fNum = 0;	// Index for force matrix
-		foreach (GameObject node in startElement.GetComponent<FEMElement>().nodes)
-		{
-			float xDist = node.transform.position.x - collision.transform.position.x;
-			float yDist = node.transform.position.y - collision.transform.position.y;
-			Vector3 dist = node.transform.position - collision.transform.position;
-			F[fNum, 0] = xDist * damping;
-			fNum++;
-			F[fNum, 0] = yDist * damping;
-			fNum++;
-		}
-		// Calculate X by multiplying F by the inverse of Ke
+		F = startElement.GetComponent<FEMElement>().CalculateF(collision, collisionForce, damping);
+		// Calculate X by multiplying the inverse of K by F
 		float[,] X = startElement.GetComponent<FEMElement>().MultiplyMatrices(iKe, F);
-		Debug.Log($"X[0, 0] = {iKe[0, 0]}");
+		// Deform nodes in the element based on X matrix
 		startElement.GetComponent<FEMElement>().DeformNodes(X, F);
+
+		AddNeighboursToPerturbed1(startElement);
+		foreach (GameObject element in perturbed1)
+		{
+			// F = KX
+			// K^-1 * F = X
+			iKe = startElement.GetComponent<FEMElement>().InverseMatrix(element.GetComponent<FEMElement>().Ke);
+			// Calculate F
+			F = element.GetComponent<FEMElement>().CalculateF(collision, collisionForce, damping);
+			// Calculate X by multiplying the inverse of K by F
+			X = element.GetComponent<FEMElement>().MultiplyMatrices(iKe, F);
+			// Deform nodes in the element based on X matrix
+			element.GetComponent<FEMElement>().DeformNodes(X, F);
+
+			AddNeighboursToPerturbed2(element);
+		}
+		perturbed1.Clear();
+		perturbed2.Clear();
 	}
 
-	void AddNeighboursToPerturbed1(GameObject currentNodeObject)
+	void AddNeighboursToPerturbed1(GameObject currentElementObject)
 	{
-		FEMNode currentNode = currentNodeObject.GetComponent<FEMNode>();
+		FEMElement currentElement = currentElementObject.GetComponent<FEMElement>();
 
 		// Left neighbour
-		if(currentNode.leftAdj != null)
+		if(currentElement.leftAdj != null)
 		{
 			// Check neighbour isn't already in perturbed1 list
-			if(!perturbed1.Contains(currentNode.leftAdj))
+			if(!perturbed1.Contains(currentElement.leftAdj))
 			{
 				//Debug.Log("Adding leftAdj to perturbed1!");
-				perturbed1.Add(currentNode.leftAdj);
+				perturbed1.Add(currentElement.leftAdj);
 			}
 		}
 		// Right neighbour
-		if (currentNode.rightAdj != null)
+		if (currentElement.rightAdj != null)
 		{
 			// Check neighbour isn't already in perturbed1 list
-			if (!perturbed1.Contains(currentNode.rightAdj))
+			if (!perturbed1.Contains(currentElement.rightAdj))
 			{
 				//Debug.Log("Adding rightAdj to perturbed1!");
-				perturbed1.Add(currentNode.rightAdj);
+				perturbed1.Add(currentElement.rightAdj);
 			}
 		}
 		// Up neighbour
-		if (currentNode.upAdj != null)
+		if (currentElement.upAdj != null)
 		{
 			// Check neighbour isn't already in perturbed1 list
-			if (!perturbed1.Contains(currentNode.upAdj))
+			if (!perturbed1.Contains(currentElement.upAdj))
 			{
 				//Debug.Log("Adding upAdj to perturbed1!");
-				perturbed1.Add(currentNode.upAdj);
+				perturbed1.Add(currentElement.upAdj);
 			}
 		}
 		// Down neighbour
-		if (currentNode.downAdj != null)
+		if (currentElement.downAdj != null)
 		{
 			// Check neighbour isn't already in perturbed1 list
-			if (!perturbed1.Contains(currentNode.downAdj))
+			if (!perturbed1.Contains(currentElement.downAdj))
 			{
 				//Debug.Log("Adding downAdj to perturbed1!");
-				perturbed1.Add(currentNode.downAdj);
+				perturbed1.Add(currentElement.downAdj);
 			}
 		}
 	}
 
-	void AddNeighboursToPerturbed2(GameObject currentNodeObject)
+	void AddNeighboursToPerturbed2(GameObject currentElementObject)
 	{
-		FEMNode currentNode = currentNodeObject.GetComponent<FEMNode>();
+		FEMElement currentElement = currentElementObject.GetComponent<FEMElement>();
 
 		// Left neighbour
-		if (currentNode.leftAdj != null)
+		if (currentElement.leftAdj != null)
 		{
 			// Check neighbour isn't already in perturbed2 list
-			if (!perturbed2.Contains(currentNode.leftAdj))
+			if (!perturbed2.Contains(currentElement.leftAdj) || !perturbed1.Contains(currentElement.leftAdj))
 			{
 				//Debug.Log("Adding leftAdj to perturbed2!");
-				perturbed2.Add(currentNode.leftAdj);
+				perturbed2.Add(currentElement.leftAdj);
 			}
 		}
 		// Right neighbour
-		if (currentNode.rightAdj != null)
+		if (currentElement.rightAdj != null)
 		{
 			// Check neighbour isn't already in perturbed2 list
-			if (!perturbed2.Contains(currentNode.rightAdj))
+			if (!perturbed2.Contains(currentElement.rightAdj) || !perturbed1.Contains(currentElement.rightAdj))
 			{
 				//Debug.Log("Adding rightAdj to perturbed2!");
-				perturbed2.Add(currentNode.rightAdj);
+				perturbed2.Add(currentElement.rightAdj);
 			}
 		}
 		// Up neighbour
-		if (currentNode.upAdj != null)
+		if (currentElement.upAdj != null)
 		{
 			// Check neighbour isn't already in perturbed2 list
-			if (!perturbed2.Contains(currentNode.upAdj))
+			if (!perturbed2.Contains(currentElement.upAdj) || !perturbed1.Contains(currentElement.upAdj))
 			{
 				//Debug.Log("Adding upAdj to perturbed2!");
-				perturbed2.Add(currentNode.upAdj);
+				perturbed2.Add(currentElement.upAdj);
 			}
 		}
 		// Down neighbour
-		if (currentNode.downAdj != null)
+		if (currentElement.downAdj != null)
 		{
 			// Check neighbour isn't already in perturbed2 list
-			if (!perturbed2.Contains(currentNode.downAdj))
+			if (!perturbed2.Contains(currentElement.downAdj) || !perturbed2.Contains(currentElement.downAdj))
 			{
 				//Debug.Log("Adding downAdj to perturbed2!");
-				perturbed2.Add(currentNode.downAdj);
+				perturbed2.Add(currentElement.downAdj);
 			}
 		}
 	}

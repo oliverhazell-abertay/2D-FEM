@@ -1,4 +1,6 @@
-﻿using System.Collections;
+﻿
+
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -35,7 +37,8 @@ public class FEMElement : MonoBehaviour
 	//float t = 1.0f; // Thickness
 	public GameObject leftAdj, rightAdj, upAdj, downAdj; // Neighbour elements
 	public float neighbourCount;
-	public float midX, midY;	// Midpoint coords
+	public float midX, midY;    // Midpoint coords
+	public bool perturbed = false;
 	
 	void Start()
 	{
@@ -175,7 +178,7 @@ public class FEMElement : MonoBehaviour
 	{
 		float[,] tempB;
 		tempB = new float[3, 8];
-		float c = 1 / area;
+		float c = 1 / (2 * area);	// 1 / 2A
 		// u1 column
 		tempB[0, 0] = (v1 - v4) * c;
 		tempB[1, 0] = 0.0f;
@@ -356,7 +359,6 @@ public class FEMElement : MonoBehaviour
 			return null;
 		}
 		float[,] inverse = ToMatrix(GetComponent<MatrixInverseProgram>().MatrixInverse(ToJaggedArray(matrix)));
-		Debug.Log($"inverse: {inverse[0, 0]}");
 		return inverse;
 	}
 
@@ -415,15 +417,29 @@ public class FEMElement : MonoBehaviour
 			0----------------1
 					2a
 		*/
-		Debug.Log($"DeformNodes() called! xMatrix = {displacementMatrix[0, 0]}");
-		nodes[0].transform.localPosition = nodes[0].transform.localPosition + new Vector3(displacementMatrix[0, 0], displacementMatrix[1, 0], 0.0f);
-		nodes[1].transform.localPosition = nodes[1].transform.localPosition + new Vector3(displacementMatrix[2, 0], displacementMatrix[3, 0], 0.0f);
-		nodes[2].transform.localPosition = nodes[2].transform.localPosition + new Vector3(displacementMatrix[4, 0], displacementMatrix[5, 0], 0.0f);
-		nodes[3].transform.localPosition = nodes[3].transform.localPosition + new Vector3(displacementMatrix[6, 0], displacementMatrix[7, 0], 0.0f);
+		nodes[0].transform.localPosition = nodes[0].transform.localPosition + new Vector3(forceMatrix[0, 0], forceMatrix[1, 0], 0.0f) + new Vector3(displacementMatrix[0, 0], displacementMatrix[1, 0], 0.0f);
+		nodes[1].transform.localPosition = nodes[1].transform.localPosition + new Vector3(forceMatrix[2, 0], forceMatrix[3, 0], 0.0f) + new Vector3(displacementMatrix[2, 0], displacementMatrix[3, 0], 0.0f);
+		nodes[2].transform.localPosition = nodes[2].transform.localPosition + new Vector3(forceMatrix[4, 0], forceMatrix[5, 0], 0.0f) + new Vector3(displacementMatrix[4, 0], displacementMatrix[5, 0], 0.0f);
+		nodes[3].transform.localPosition = nodes[3].transform.localPosition + new Vector3(forceMatrix[6, 0], forceMatrix[7, 0], 0.0f) + new Vector3(displacementMatrix[6, 0], displacementMatrix[7, 0], 0.0f);
 	}
 
-	public void CalculateF()
+	public float[,] CalculateF(Collision2D collision, float collisionForce, float damping)
 	{
+		// Calculate F
+		float[,] F = new float[8, 1];
+		int fNum = 0;   // Index for force matrix
 
+		foreach (GameObject node in nodes)
+		{
+			Vector3 forceVector = node.transform.position - collision.transform.position;
+			float xDist = forceVector.x;
+			float yDist = forceVector.y;
+			F[fNum, 0] = xDist * damping;
+			fNum++;
+			F[fNum, 0] = yDist * damping;
+			fNum++;
+		}
+
+		return F;
 	}
 }
