@@ -49,7 +49,7 @@ public class FEMShape : MonoBehaviour
 	public List<GameObject> perturbed2;
 
 	// Variables for rendering
-	public bool edgesOnly = true;
+	public bool renderNodes = true;
 
 	public float localX;
 	public float localY;
@@ -173,19 +173,13 @@ public class FEMShape : MonoBehaviour
 			nodes[i].transform.SetParent(gameObject.transform);
 		}
 		// Only render edges if setting is on
-		if (edgesOnly == true)
+		if (!renderNodes)
 		{
 			for (int y = 0; y < height; ++y)
 			{
 				for (int x = 0; x < width; ++x)
 				{
-					if (nodes[(y * width) + x].GetComponent<FEMNode>().ue == false
-								   && nodes[(y * width) + x].GetComponent<FEMNode>().de == false
-								   && nodes[(y * width) + x].GetComponent<FEMNode>().le == false
-								   && nodes[(y * width) + x].GetComponent<FEMNode>().re == false)
-					{
 						nodes[(y * width) + x].GetComponent<SpriteRenderer>().enabled = false;
-					}
 				}
 			}
 		}
@@ -340,8 +334,6 @@ public class FEMShape : MonoBehaviour
 	{
 		if (collision.gameObject.tag != "Floor" && collision.relativeVelocity.magnitude > forceRequired)
 		{
-			float timerStart = Time.realtimeSinceStartup;
-
 			GameObject closestElement = null;
 			float currentClosestDistance = 1000000.0f;
 			Vector3 collisionPos = collision.transform.position;
@@ -369,8 +361,6 @@ public class FEMShape : MonoBehaviour
 				ElementDeform(closestElement, collision);
 			else
 				Debug.Log("Couldn't find nearest element to collision!");
-
-			Debug.Log("Time taken to deform: " + ((Time.realtimeSinceStartup - timerStart) * 1000));
 		}
 	}
 

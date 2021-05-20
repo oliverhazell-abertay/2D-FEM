@@ -23,5 +23,13 @@ public class BallSpawner : MonoBehaviour
 		{
 			Instantiate(ball, mousePos, Quaternion.identity);
 		}
-    }
+		if (Input.GetMouseButtonDown(1))
+		{
+			GameObject[] balls = GameObject.FindGameObjectsWithTag("Player");
+			for (int i = 0; i < balls.Length; i++)
+			{
+				Destroy(balls[i]);
+			}
+		}
+	}
 }

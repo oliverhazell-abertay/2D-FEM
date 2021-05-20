@@ -432,6 +432,7 @@ public class FEMElement : MonoBehaviour
 		foreach (GameObject node in nodes)
 		{
 			Vector3 forceVector = node.transform.position - collision.transform.position;
+			forceVector = forceVector.normalized;
 			float xDist = forceVector.x;
 			float yDist = forceVector.y;
 			F[fNum, 0] = xDist * damping;
